@@ -79,7 +79,8 @@ function base() {
         tareas: [], habitos: [], notas: [], agua: {}, animo: {},
         eventos: [], recordatorios: [], gastos: [], cuentas: [],
         rutinas: [], // rutinas del Método Oasis: { id, pilar (0-3), nombre, dias: [] }
-        ajustes: { moneda: 'EUR', presupuesto: null, clientId: '' },
+        ajustes: { moneda: 'EUR', presupuesto: null, clientId: '', inicioJornada: '09:00', finJornada: '18:30' },
+        prioridades: {}, // 'YYYY-MM-DD' -> [{ texto, hecha }] x3
     };
 }
 
@@ -156,6 +157,53 @@ $('#limpiar-tareas').addEventListener('click', () => {
     datos.tareas = datos.tareas.filter((t) => !t.hecha);
     guardar(); pintarTareas();
 });
+
+// =====================================================================
+// LO IMPORTANTE HOY: 3 PRIORIDADES
+// =====================================================================
+function prioridadesDe(dia) {
+    if (!datos.prioridades[dia]) datos.prioridades[dia] = [0, 1, 2].map(() => ({ texto: '', hecha: false }));
+    return datos.prioridades[dia];
+}
+
+function pintarPrioridades() {
+    const hoy = claveDia();
+    const lista = prioridadesDe(hoy);
+    // Lo que quedó sin hacer ayer se ofrece para hoy
+    const ayer = (datos.prioridades[diasAtras(1)] || []).filter((p) => p.texto && !p.hecha);
+    const sugerencias = ayer.filter((a) => !lista.some((x) => x.texto === a.texto));
+    let k = 0;
+    const cont = $('#prioridades');
+    cont.replaceChildren();
+    lista.forEach((p, i) => {
+        const pendienteAyer = !p.texto ? sugerencias[k++] : null;
+        const input = crear('input', {
+            type: 'text', value: p.texto, maxLength: 100, autocomplete: 'off',
+            placeholder: pendienteAyer ? `De ayer: ${pendienteAyer.texto}` : (i === 0 ? 'La más importante' : 'Prioridad ' + (i + 1)),
+            className: p.hecha ? 'hecha' : '',
+        });
+        input.addEventListener('change', () => { p.texto = input.value.trim(); guardar(); pintarPrioridades(); });
+        const hijos = [
+            crear('button', {
+                className: 'check' + (p.hecha ? ' on' : ''), textContent: p.hecha ? '✓' : '',
+                ariaLabel: 'Marcar prioridad', disabled: !p.texto,
+                onclick: () => { p.hecha = !p.hecha; guardar(); pintarPrioridades(); },
+            }),
+            input,
+        ];
+        if (pendienteAyer) {
+            hijos.push(crear('button', {
+                className: 'mini secundario', textContent: '↻ Usar',
+                ariaLabel: `Traer de ayer: ${pendienteAyer.texto}`,
+                onclick: () => { p.texto = pendienteAyer.texto; guardar(); pintarPrioridades(); },
+            }));
+        }
+        cont.append(crear('li', {}, hijos));
+    });
+    const con = lista.filter((p) => p.texto);
+    const hechas = con.filter((p) => p.hecha).length;
+    $('#contador-prioridades').textContent = con.length ? (hechas === con.length ? '¡Hecho! 🎉' : `${hechas}/${con.length}`) : '';
+}
 
 // =====================================================================
 // AGUA Y ÁNIMO
@@ -430,7 +478,7 @@ async function itemsDelDia(clave) {
     const items = [];
 
     datos.eventos.filter((e) => claveDia(new Date(e.inicio)) === clave).forEach((e) => items.push({
-        tipo: 'evento', ref: e, titulo: e.titulo, hora: new Date(e.inicio), origen: 'En el móvil', color: 'var(--primario)',
+        tipo: 'evento', ref: e, titulo: e.titulo, hora: new Date(e.inicio), fin: new Date(new Date(e.inicio).getTime() + 3600000), origen: 'En el móvil', color: 'var(--primario)',
     }));
     datos.recordatorios.forEach((r) => {
         const cuando = ocurrenciaEn(r, clave);
@@ -438,7 +486,7 @@ async function itemsDelDia(clave) {
     });
     const google = await eventosGoogleMes(dia.getFullYear(), dia.getMonth());
     google.filter((e) => claveDia(e.inicio) === clave).forEach((e) => items.push({
-        tipo: 'google', titulo: e.titulo, hora: e.inicio, todoElDia: e.todoElDia, origen: `Google ${e.origen}`, color: e.color,
+        tipo: 'google', titulo: e.titulo, hora: e.inicio, fin: e.fin, todoElDia: e.todoElDia, origen: `Google ${e.origen}`, color: e.color,
     }));
 
     return items.sort((a, b) => (!!b.todoElDia - !!a.todoElDia) || (a.hora - b.hora));
@@ -458,7 +506,8 @@ function filaItem(item, alBorrar) {
     } else if (item.tipo === 'recordatorio') {
         hijos.push(botonBorrar('Borrar recordatorio', () => borrarRecordatorio(item.ref.id)));
     }
-    return crear('li', {}, hijos);
+    const pasado = item.fin ? item.fin < new Date() : item.hora < new Date();
+    return crear('li', { className: !item.todoElDia && pasado && claveDia(item.hora) === claveDia() ? 'pasado' : '' }, hijos);
 }
 
 function borrarRecordatorio(idRec) {
@@ -468,9 +517,79 @@ function borrarRecordatorio(idRec) {
     refrescarAgenda();
 }
 
+// ---------- Resumen del día: reuniones, próxima cita y huecos libres ----------
+function horaEnDia(hhmm, base = new Date()) {
+    const [h, m] = (hhmm || '00:00').split(':').map(Number);
+    return new Date(base.getFullYear(), base.getMonth(), base.getDate(), h, m);
+}
+
+function duracionTexto(min) {
+    const h = Math.floor(min / 60), m = Math.round(min % 60);
+    return h ? (m ? `${h} h ${m} min` : `${h} h`) : `${m} min`;
+}
+
+function calcularDia(items, ahora = new Date()) {
+    const ini = horaEnDia(datos.ajustes.inicioJornada, ahora);
+    const fin = horaEnDia(datos.ajustes.finJornada, ahora);
+    // Bloques ocupados (eventos con hora, sin recordatorios), recortados a la jornada y fusionados
+    const bloques = items
+        .filter((i) => i.tipo !== 'recordatorio' && !i.todoElDia && i.fin)
+        .map((i) => [Math.max(i.hora, ini), Math.min(i.fin, fin)])
+        .filter(([a, b]) => b > a)
+        .sort((x, y) => x[0] - y[0])
+        .reduce((acc, [a, b]) => {
+            const ult = acc[acc.length - 1];
+            if (ult && a <= ult[1]) ult[1] = Math.max(ult[1], b); else acc.push([a, b]);
+            return acc;
+        }, []);
+    const ocupado = bloques.reduce((s, [a, b]) => s + (b - a), 0) / 60000;
+    const reuniones = items.filter((i) => i.tipo !== 'recordatorio' && !i.todoElDia).length;
+
+    // Huecos libres de 30 min o más que aún no han pasado
+    const huecos = [];
+    let cursor = Math.max(ini, ahora);
+    for (const [a, b] of bloques) {
+        if (a - cursor >= 30 * 60000) huecos.push([new Date(cursor), new Date(a)]);
+        cursor = Math.max(cursor, b);
+    }
+    if (fin - cursor >= 30 * 60000) huecos.push([new Date(cursor), fin]);
+
+    const enCurso = items.find((i) => i.tipo !== 'recordatorio' && !i.todoElDia && i.fin && i.hora <= ahora && i.fin > ahora);
+    const proxima = items.find((i) => i.tipo !== 'recordatorio' && !i.todoElDia && i.hora > ahora);
+    return { reuniones, ocupado, huecos, enCurso, proxima, jornada: (fin - ini) / 60000 };
+}
+
+function pintarResumenDia(items) {
+    const cont = $('#resumen-dia');
+    cont.replaceChildren();
+    const ahora = new Date();
+    const d = calcularDia(items, ahora);
+    if (!d.reuniones) { cont.hidden = true; return; }
+    cont.hidden = false;
+    const pct = d.jornada > 0 ? Math.round((d.ocupado / d.jornada) * 100) : 0;
+    cont.append(crear('div', { className: 'datos-dia' }, [
+        crear('div', {}, [crear('b', { textContent: String(d.reuniones) }), crear('span', { textContent: d.reuniones === 1 ? 'cita' : 'citas' })]),
+        crear('div', {}, [crear('b', { textContent: duracionTexto(d.ocupado) }), crear('span', { textContent: 'ocupado' })]),
+        crear('div', {}, [crear('b', { textContent: pct + '%' }), crear('span', { textContent: 'de tu jornada' })]),
+    ]));
+    let siguiente = '';
+    if (d.enCurso) siguiente = `Ahora: ${d.enCurso.titulo} (hasta las ${horaTexto(d.enCurso.fin)})`;
+    else if (d.proxima) {
+        const min = Math.round((d.proxima.hora - ahora) / 60000);
+        siguiente = `Siguiente: ${d.proxima.titulo} ${min < 60 ? `en ${min} min` : `a las ${horaTexto(d.proxima.hora)}`}`;
+    }
+    if (siguiente) cont.append(crear('p', { className: 'siguiente', textContent: siguiente }));
+    if (d.huecos.length) {
+        cont.append(crear('p', { className: 'ayuda sin-margen', textContent: 'Huecos libres: ' + d.huecos.map(([a, b]) => `${horaTexto(a)}–${horaTexto(b)}`).join(' · ') }));
+    } else if (horaEnDia(datos.ajustes.finJornada) > ahora) {
+        cont.append(crear('p', { className: 'ayuda sin-margen', textContent: 'No te quedan huecos libres hoy. Protege al menos 30 min para ti.' }));
+    }
+}
+
 async function pintarAgendaHoy() {
     const lista = $('#agenda-hoy');
     const items = await itemsDelDia(claveDia());
+    pintarResumenDia(items);
     lista.replaceChildren();
     if (!items.length) {
         lista.append(vacio(datos.cuentas.length ? 'Día libre. Disfruta tu oasis 🌴' : 'Sin eventos. Conecta tus calendarios de Google en Ajustes ⚙️'));
@@ -807,9 +926,13 @@ function pintarAjustes() {
     $('#ajuste-moneda').value = datos.ajustes.moneda;
     $('#ajuste-presupuesto').value = datos.ajustes.presupuesto || '';
     $('#google-client-id').value = datos.ajustes.clientId || '';
+    $('#ajuste-inicio').value = datos.ajustes.inicioJornada;
+    $('#ajuste-fin').value = datos.ajustes.finJornada;
     pintarCuentas();
     pintarEstadoNotif();
 }
+$('#ajuste-inicio').addEventListener('change', (e) => { if (e.target.value) { datos.ajustes.inicioJornada = e.target.value; guardar(); pintarAgendaHoy(); } });
+$('#ajuste-fin').addEventListener('change', (e) => { if (e.target.value) { datos.ajustes.finJornada = e.target.value; guardar(); pintarAgendaHoy(); } });
 $('#ajuste-moneda').addEventListener('change', (e) => { datos.ajustes.moneda = e.target.value; guardar(); pintarGastos(); });
 $('#ajuste-presupuesto').addEventListener('change', (e) => {
     const v = parseFloat(e.target.value);
@@ -881,6 +1004,7 @@ let diaActual = claveDia();
 function pintarTodo() {
     nuevoDia();
     pintarCabecera();
+    pintarPrioridades();
     pintarTareas();
     pintarAgua();
     pintarAnimo();

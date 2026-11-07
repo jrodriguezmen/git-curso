@@ -90,10 +90,12 @@ const GoogleCal = (() => {
                     .map((ev) => {
                         const todoElDia = !!ev.start.date;
                         const inicio = todoElDia ? new Date(ev.start.date + 'T00:00:00') : new Date(ev.start.dateTime);
+                        const fin = todoElDia ? new Date(ev.end.date + 'T00:00:00') : new Date(ev.end.dateTime);
                         return {
                             id: `${cuenta.id}:${ev.id}`,
                             titulo: ev.summary || '(Sin título)',
                             inicio,
+                            fin,
                             todoElDia,
                             origen: cuenta.etiqueta,
                             color: cuenta.color,

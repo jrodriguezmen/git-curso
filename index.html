@@ -29,8 +29,15 @@
     <main>
         <!-- ================= HOY ================= -->
         <section id="vista-hoy" class="vista activa">
+            <div class="tarjeta">
+                <h2>Lo importante hoy <span class="contador" id="contador-prioridades"></span></h2>
+                <p class="ayuda sin-margen">Si solo pudieras hacer tres cosas hoy, ¿cuáles serían?</p>
+                <ol id="prioridades" class="prioridades"></ol>
+            </div>
+
             <div class="tarjeta" id="tarjeta-agenda-hoy">
                 <h2>Agenda de hoy</h2>
+                <div id="resumen-dia" class="resumen"></div>
                 <ul id="agenda-hoy" class="lista"></ul>
             </div>
 
@@ -169,6 +176,15 @@
                     <p class="ayuda">Pega aquí el <b>ID de cliente OAuth</b> creado en Google Cloud. Los pasos están en el README del proyecto.</p>
                     <input id="google-client-id" type="text" placeholder="xxxx.apps.googleusercontent.com" autocomplete="off">
                 </details>
+            </div>
+
+            <div class="tarjeta">
+                <h2>Tu jornada</h2>
+                <p class="ayuda sin-margen">Se usa para calcular tus huecos libres y tu hora de desconexión.</p>
+                <div class="fila">
+                    <label class="campo">Empiezo<input id="ajuste-inicio" type="time"></label>
+                    <label class="campo">Termino<input id="ajuste-fin" type="time"></label>
+                </div>
             </div>
 
             <div class="tarjeta">

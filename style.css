@@ -293,3 +293,22 @@ button.mini { padding: 4px 10px; min-height: 32px; font-size: .8rem; }
 .nueva-rutina { margin-top: 10px; }
 .nueva-rutina input { padding: 10px 12px; }
 .pie a { color: inherit; }
+
+/* ---------- Lo importante hoy ---------- */
+.sin-margen { margin-top: 0; }
+.prioridades { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.prioridades li { display: flex; align-items: center; gap: 10px; }
+.prioridades input { padding: 10px 12px; }
+.prioridades input.hecha { text-decoration: line-through; color: var(--suave); }
+.prioridades li:first-child input { font-weight: 600; border-color: var(--acento); }
+.check:disabled { opacity: .35; }
+
+/* ---------- Resumen del día ---------- */
+.resumen { margin-bottom: 4px; }
+.resumen[hidden] { display: none; }
+.datos-dia { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center; }
+.datos-dia div { background: var(--fondo); border-radius: 12px; padding: 10px 4px; display: flex; flex-direction: column; }
+.datos-dia b { font-family: var(--display); font-size: 1.2rem; font-weight: 600; }
+.datos-dia span { font-size: .75rem; color: var(--suave); }
+.siguiente { margin: 12px 0 4px; font-weight: 600; }
+.lista li.pasado { opacity: .5; }
