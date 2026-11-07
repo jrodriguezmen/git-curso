@@ -21,9 +21,10 @@ Tus datos se guardan en tu teléfono.
 3. Pulsa **Instalar** (o menú ⋮ → *Añadir a pantalla de inicio*).
 
 ### Opción B: APK
-1. En GitHub → pestaña **Actions** → **Generar APK de Android** → última ejecución en verde.
-2. Descarga **metodo-oasis-daily-apk**, descomprime y pasa el `.apk` al móvil.
-3. Ábrelo y permite "Instalar apps de origen desconocido".
+1. Desde el móvil Android, abre en Chrome:
+   **https://github.com/jrodriguezmen/git-curso/releases/latest/download/metodo-oasis-daily.apk**
+2. Cuando termine la descarga, toca el archivo.
+3. Si Android lo pide, permite a Chrome "Instalar apps desconocidas" y pulsa **Instalar**.
 
 | | Chrome (PWA) | APK |
 |---|---|---|

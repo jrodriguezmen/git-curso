@@ -6,6 +6,9 @@ on:
     paths-ignore: ['README.md']
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   apk:
     runs-on: ubuntu-latest
@@ -55,3 +58,14 @@ jobs:
         with:
           name: metodo-oasis-daily-apk
           path: metodo-oasis-daily.apk
+
+      # Publica el APK como descarga directa (sin zip) en la página de Releases
+      - name: Publicar descarga directa
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: app-latest
+          name: Método Oasis Daily App (última versión)
+          body: |
+            Descarga **metodo-oasis-daily.apk** desde el móvil Android y ábrelo para instalarlo.
+          files: metodo-oasis-daily.apk
+          make_latest: true
