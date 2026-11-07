@@ -1,11 +1,11 @@
 # Método Oasis Daily App 🌴
 
-La app diaria del **Método Oasis**: tu día en calma, todo en un solo lugar.
+La app diaria del **[Método Oasis](https://metodooasis.com/)**: para que el trabajo salga de tu cabeza y recuperes el tiempo que es tuyo.
 
+- 🌿 **Oasis**: los cuatro pilares del método (1 Diagnóstico, 2 Límites, 3 Descanso profundo, 4 Plan de vuelta), con tus rutinas diarias de cada pilar, su racha 🔥 y otros hábitos.
 - ☀️ **Hoy**: tu agenda del día (Google personal + trabajo), tareas, agua y ánimo.
 - 📅 **Agenda**: calendario mensual con tus eventos de Google y del móvil, y **recordatorios** (una vez, cada día o cada semana).
 - 💶 **Gastos**: apunta gastos por categoría, mira el total del mes y tu presupuesto.
-- 🔁 **Hábitos**: marca tus hábitos y mira tu racha 🔥.
 - 📝 **Notas**: ideas, compras, apuntes.
 - ⚙️ **Ajustes**: cuentas de Google, notificaciones, moneda, presupuesto y copia de seguridad.
 
@@ -60,3 +60,5 @@ Notas:
 python3 -m http.server 8000
 # abre http://localhost:8000
 ```
+
+> Método Oasis es un programa de bienestar y no sustituye a un tratamiento médico ni psicológico.

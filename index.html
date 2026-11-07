@@ -3,18 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="theme-color" content="#0f766e">
+    <meta name="theme-color" content="#14231d">
     <meta name="description" content="Método Oasis Daily App: tu día en calma. Tareas, agenda, recordatorios, gastos, hábitos y notas.">
     <title>Método Oasis Daily App</title>
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="icon" href="icons/icon-192.png">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <link rel="preconnect" href="https://fonts.bunny.net">
+    <link rel="stylesheet" href="https://fonts.bunny.net/css?family=fraunces:400,600|work-sans:400,500,600&display=swap">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <header class="top">
         <div>
-            <p class="marca">🌴 Método Oasis</p>
+            <p class="marca">Método Oasis</p>
             <h1 id="saludo">Hola</h1>
             <p class="fecha" id="fecha"></p>
         </div>
@@ -118,10 +120,19 @@
             </div>
         </section>
 
-        <!-- ================= HÁBITOS ================= -->
-        <section id="vista-habitos" class="vista">
+        <!-- ================= OASIS ================= -->
+        <section id="vista-oasis" class="vista">
+            <div class="tarjeta oasis-intro">
+                <p class="marca">Tu Oasis de hoy</p>
+                <h2 class="titulo-oasis">El trabajo, fuera de tu cabeza</h2>
+                <p class="ayuda" id="oasis-resumen"></p>
+                <div class="presupuesto"><div id="oasis-progreso"></div></div>
+            </div>
+
+            <div id="pilares"></div>
+
             <div class="tarjeta">
-                <h2>Mis hábitos</h2>
+                <h2>Otros hábitos</h2>
                 <form id="form-habito" class="fila">
                     <input id="input-habito" type="text" placeholder="Ej: Leer 20 minutos" autocomplete="off" maxlength="60">
                     <button type="submit" aria-label="Añadir hábito">+</button>
@@ -194,7 +205,8 @@
                 <input id="archivo-importar" type="file" accept="application/json" hidden>
             </div>
 
-            <p class="pie">Método Oasis Daily App · parte del Método Oasis 🌴</p>
+            <p class="pie">Método Oasis Daily App · parte de <a href="https://metodooasis.com/" target="_blank" rel="noopener">Método Oasis</a><br>
+                Método Oasis es un programa de bienestar y no sustituye a un tratamiento médico ni psicológico.</p>
         </section>
     </main>
 
@@ -228,9 +240,9 @@
 
     <nav class="barra">
         <button data-vista="hoy" class="activa"><span>☀️</span>Hoy</button>
+        <button data-vista="oasis"><span>🌿</span>Oasis</button>
         <button data-vista="agenda"><span>📅</span>Agenda</button>
         <button data-vista="gastos"><span>💶</span>Gastos</button>
-        <button data-vista="habitos"><span>🔁</span>Hábitos</button>
         <button data-vista="notas"><span>📝</span>Notas</button>
     </nav>
 

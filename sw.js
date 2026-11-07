@@ -1,5 +1,5 @@
 // Service worker: guarda la app en el teléfono para que funcione sin internet.
-const CACHE = 'oasis-daily-v2';
+const CACHE = 'oasis-daily-v3';
 const ARCHIVOS = ['./', 'index.html', 'style.css', 'app.js', 'google.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png'];
 
 self.addEventListener('install', (e) => {

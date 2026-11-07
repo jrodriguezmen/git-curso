@@ -12,6 +12,13 @@ const CATEGORIAS = [
     { id: 'ropa', nombre: 'Ropa', emoji: '👕' },
     { id: 'otros', nombre: 'Otros', emoji: '📦' },
 ];
+// Los cuatro pilares del programa Método Oasis (metodooasis.com)
+const PILARES = [
+    { nombre: 'Diagnóstico', texto: 'Mides cuánta carga llevas y localizas los momentos concretos en los que el trabajo se te mete en la cabeza.' },
+    { nombre: 'Límites', texto: 'Diseñas tus primeros límites con la agenda, el equipo y el móvil, y practicas cómo decir que no.' },
+    { nombre: 'Descanso profundo', texto: 'Ajustas sueño, comidas y rutinas para que el descanso deje de depender de la suerte.' },
+    { nombre: 'Plan de vuelta', texto: 'Te llevas un plan personal para no recaer cuando vuelva la presión.' },
+];
 const COLORES_CUENTA = { Personal: '#2563eb', Trabajo: '#d97706' };
 
 // ---------- Utilidades ----------
@@ -71,6 +78,7 @@ function base() {
     return {
         tareas: [], habitos: [], notas: [], agua: {}, animo: {},
         eventos: [], recordatorios: [], gastos: [], cuentas: [],
+        rutinas: [], // rutinas del Método Oasis: { id, pilar (0-3), nombre, dias: [] }
         ajustes: { moneda: 'EUR', presupuesto: null, clientId: '' },
     };
 }
@@ -225,6 +233,65 @@ $('#form-habito').addEventListener('submit', (e) => {
     $('#input-habito').value = '';
     guardar(); pintarHabitos();
 });
+
+// =====================================================================
+// MÉTODO OASIS: PILARES Y RUTINAS
+// =====================================================================
+function pintarOasis() {
+    const hoy = claveDia();
+    const total = datos.rutinas.length;
+    const hechas = datos.rutinas.filter((r) => r.dias.includes(hoy)).length;
+    $('#oasis-resumen').textContent = total
+        ? (hechas === total ? `¡Hoy has cumplido todas tus rutinas (${total})! 🌿` : `Hoy llevas ${hechas} de ${total} rutinas.`)
+        : 'Añade a cada pilar las rutinas que quieres practicar cada día.';
+    $('#oasis-progreso').style.width = total ? (hechas / total) * 100 + '%' : '0%';
+
+    const cont = $('#pilares');
+    cont.replaceChildren();
+    PILARES.forEach((p, i) => {
+        const lista = crear('ul', { className: 'lista' });
+        const rutinas = datos.rutinas.filter((r) => r.pilar === i);
+        rutinas.forEach((r) => {
+            const hecho = r.dias.includes(hoy);
+            const n = racha(r);
+            lista.append(crear('li', {}, [
+                crear('button', {
+                    className: 'check' + (hecho ? ' on' : ''), textContent: hecho ? '✓' : '',
+                    ariaLabel: hecho ? 'Desmarcar hoy' : 'Marcar hecha hoy',
+                    onclick: () => { r.dias = hecho ? r.dias.filter((d) => d !== hoy) : [...r.dias, hoy]; guardar(); pintarOasis(); },
+                }),
+                crear('div', { className: 'texto' }, [
+                    crear('span', { textContent: r.nombre }),
+                    crear('span', { className: 'racha', textContent: n ? `🔥 ${n} ${n === 1 ? 'día seguido' : 'días seguidos'}` : 'Empieza hoy' }),
+                ]),
+                botonBorrar('Borrar rutina', () => {
+                    if (!confirm(`¿Borrar la rutina "${r.nombre}"?`)) return;
+                    datos.rutinas = datos.rutinas.filter((x) => x.id !== r.id);
+                    guardar(); pintarOasis();
+                }),
+            ]));
+        });
+        const input = crear('input', { type: 'text', placeholder: 'Añadir rutina a este pilar', maxLength: 80, autocomplete: 'off' });
+        const form = crear('form', { className: 'fila nueva-rutina' }, [input, crear('button', { type: 'submit', textContent: '+', ariaLabel: 'Añadir rutina' })]);
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const nombre = input.value.trim();
+            if (!nombre) return;
+            datos.rutinas.push({ id: id(), pilar: i, nombre, dias: [] });
+            guardar(); pintarOasis();
+        });
+        const hechasPilar = rutinas.filter((r) => r.dias.includes(hoy)).length;
+        cont.append(crear('div', { className: 'tarjeta pilar' }, [
+            crear('div', { className: 'pilar-cabecera' }, [
+                crear('span', { className: 'pilar-num', textContent: String(i + 1) }),
+                crear('h2', { textContent: p.nombre }, [crear('span', { className: 'contador', textContent: rutinas.length ? `${hechasPilar}/${rutinas.length}` : '' })]),
+            ]),
+            crear('p', { className: 'ayuda pilar-texto', textContent: p.texto }),
+            lista,
+            form,
+        ]));
+    });
+}
 
 // =====================================================================
 // NOTAS
@@ -817,6 +884,7 @@ function pintarTodo() {
     pintarTareas();
     pintarAgua();
     pintarAnimo();
+    pintarOasis();
     pintarHabitos();
     pintarNotas();
     pintarChipsCategorias();

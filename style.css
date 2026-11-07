@@ -1,32 +1,36 @@
 :root {
-    --fondo: #f1f7f6;
-    --tarjeta: #ffffff;
-    --texto: #15302d;
-    --suave: #5f7774;
-    --borde: #dbe8e6;
-    --primario: #0f766e;
-    --primario-suave: #d7f0ec;
-    --acento: #f59e0b;
-    --ok: #16a34a;
-    --peligro: #dc2626;
-    --sombra: 0 1px 3px rgba(15, 60, 55, .08);
+    /* Colores de Método Oasis (metodooasis.com) */
+    --fondo: #f3eee4;
+    --tarjeta: #fbf8f2;
+    --texto: #14231d;
+    --suave: #4f5e56;
+    --borde: #d9cfbd;
+    --primario: #14231d;
+    --primario-suave: #e4ebe3;
+    --acento: #d9c39b;
+    --salvia: #7fa88f;
+    --ok: #4f8a66;
+    --peligro: #b4432f;
+    --sombra: 0 1px 3px rgba(20, 35, 29, .06);
+    --display: "Fraunces", Georgia, "Times New Roman", serif;
+    --cuerpo: "Work Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
     :root {
-        --fondo: #0c1716;
-        --tarjeta: #142422;
-        --texto: #e6f2f0;
-        --suave: #92aeaa;
-        --borde: #233936;
-        --primario: #2dd4bf;
-        --primario-suave: #163f3a;
-        --acento: #fbbf24;
-        --ok: #4ade80;
-        --peligro: #f87171;
+        --fondo: #0d1814;
+        --tarjeta: #14231d;
+        --texto: #f3eee4;
+        --suave: #a8b5ac;
+        --borde: #2a3b33;
+        --primario: #7fa88f;
+        --primario-suave: #1f3329;
+        --acento: #d9c39b;
+        --ok: #7fa88f;
+        --peligro: #e0806b;
         --sombra: none;
     }
-    button:not(.secundario):not(.icono):not(.check):not(.borrar):not(.chip):not(.enlace):not(.mini):not(.dia) { color: #062723; }
+    button:not(.secundario):not(.icono):not(.check):not(.borrar):not(.chip):not(.enlace):not(.mini):not(.dia) { color: #0d1814; }
 }
 
 * { box-sizing: border-box; }
@@ -35,7 +39,7 @@ html, body {
     margin: 0;
     background: var(--fondo);
     color: var(--texto);
-    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-family: var(--cuerpo);
     -webkit-tap-highlight-color: transparent;
 }
 body { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
@@ -49,8 +53,8 @@ body { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
     max-width: 640px;
     margin: 0 auto;
 }
-.marca { margin: 0; font-size: .8rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--primario); }
-h1 { margin: 4px 0 0; font-size: 1.7rem; }
+.marca { margin: 0; font-family: var(--display); font-size: 1rem; font-style: italic; color: var(--ok); }
+h1 { margin: 2px 0 0; font-family: var(--display); font-weight: 600; font-size: 1.9rem; letter-spacing: -.01em; }
 .fecha { margin: 2px 0 0; color: var(--suave); font-size: .95rem; }
 h2 { margin: 0 0 12px; font-size: 1.05rem; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .acciones-top { display: flex; gap: 6px; align-items: center; }
@@ -183,10 +187,10 @@ button.mini { padding: 4px 10px; min-height: 32px; font-size: .8rem; }
     gap: 2px;
 }
 .dia.hoy { color: var(--primario); font-weight: 800; }
-.dia.sel { background: var(--primario); color: #fff; }
+.dia.sel { background: var(--primario); color: var(--fondo); }
 .marcas { display: flex; gap: 2px; height: 5px; }
 .marcas i { width: 5px; height: 5px; border-radius: 50%; background: var(--primario); }
-.marcas i.rec { background: #db2777; }
+.marcas i.rec { background: var(--acento); }
 .dia.sel .marcas i { background: #fff; }
 
 /* ---------- Gastos ---------- */
@@ -197,7 +201,7 @@ button.mini { padding: 4px 10px; min-height: 32px; font-size: .8rem; }
 .categorias { margin-top: 14px; display: flex; flex-direction: column; gap: 10px; }
 .cat { display: grid; grid-template-columns: 1fr auto; gap: 4px 8px; font-size: .92rem; }
 .barra-cat { grid-column: 1 / -1; height: 6px; background: var(--borde); border-radius: 99px; overflow: hidden; }
-.barra-cat div { height: 100%; background: var(--acento); border-radius: 99px; }
+.barra-cat div { height: 100%; background: var(--salvia, var(--acento)); border-radius: 99px; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip { background: var(--fondo); color: var(--texto); border: 1px solid var(--borde); padding: 6px 12px; min-height: 36px; font-weight: 500; font-size: .88rem; border-radius: 99px; }
 .chip.on { background: var(--primario-suave); border-color: var(--primario); color: var(--primario); font-weight: 700; }
@@ -267,3 +271,25 @@ button.mini { padding: 4px 10px; min-height: 32px; font-size: .8rem; }
 .barra button span { font-size: 1.25rem; filter: grayscale(1); opacity: .7; }
 .barra button.activa { color: var(--primario) !important; }
 .barra button.activa span { filter: none; opacity: 1; }
+
+/* ---------- Método Oasis ---------- */
+.titulo-oasis { font-family: var(--display); font-weight: 400; font-size: 1.45rem; margin: 4px 0 0; }
+.oasis-intro { background: var(--primario); color: var(--fondo); border: none; }
+.oasis-intro .marca { color: var(--acento); }
+.oasis-intro .ayuda { color: inherit; opacity: .85; }
+.oasis-intro .presupuesto { background: rgba(255, 255, 255, .18); }
+.oasis-intro .presupuesto div { background: var(--acento); }
+.pilar-cabecera { display: flex; align-items: center; gap: 12px; }
+.pilar-cabecera h2 { flex: 1; margin: 0; font-family: var(--display); font-weight: 600; font-size: 1.2rem; }
+.pilar-num {
+    width: 34px; height: 34px; flex-shrink: 0;
+    border-radius: 50%;
+    border: 1.5px solid var(--acento);
+    color: var(--texto);
+    display: grid; place-items: center;
+    font-family: var(--display); font-size: 1.05rem;
+}
+.pilar-texto { margin-top: 8px; }
+.nueva-rutina { margin-top: 10px; }
+.nueva-rutina input { padding: 10px 12px; }
+.pie a { color: inherit; }
