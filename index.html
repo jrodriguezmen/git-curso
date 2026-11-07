@@ -1,11 +1,85 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Primera Página</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#4f46e5">
+    <meta name="description" content="Organiza tu día: tareas, hábitos, agua, ánimo y notas.">
+    <title>Mi Día</title>
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    
+    <header class="top">
+        <div>
+            <p class="fecha" id="fecha"></p>
+            <h1 id="saludo">Hola</h1>
+        </div>
+        <button id="instalar" class="btn-instalar" hidden>Instalar</button>
+    </header>
+
+    <main>
+        <!-- HOY -->
+        <section id="vista-hoy" class="vista activa">
+            <div class="tarjeta">
+                <h2>Tareas de hoy <span class="contador" id="contador-tareas"></span></h2>
+                <form id="form-tarea" class="fila">
+                    <input id="input-tarea" type="text" placeholder="¿Qué tienes que hacer?" autocomplete="off" maxlength="120">
+                    <button type="submit" aria-label="Añadir tarea">+</button>
+                </form>
+                <ul id="lista-tareas" class="lista"></ul>
+                <button id="limpiar-tareas" class="enlace" hidden>Borrar completadas</button>
+            </div>
+
+            <div class="tarjeta">
+                <h2>Agua <span class="contador" id="contador-agua"></span></h2>
+                <div id="vasos" class="vasos"></div>
+                <div class="fila centrada">
+                    <button id="agua-menos" class="secundario">− Vaso</button>
+                    <button id="agua-mas">+ Vaso</button>
+                </div>
+            </div>
+
+            <div class="tarjeta">
+                <h2>¿Cómo te sientes?</h2>
+                <div id="animos" class="animos"></div>
+            </div>
+        </section>
+
+        <!-- HÁBITOS -->
+        <section id="vista-habitos" class="vista">
+            <div class="tarjeta">
+                <h2>Mis hábitos</h2>
+                <form id="form-habito" class="fila">
+                    <input id="input-habito" type="text" placeholder="Ej: Leer 20 minutos" autocomplete="off" maxlength="60">
+                    <button type="submit" aria-label="Añadir hábito">+</button>
+                </form>
+                <ul id="lista-habitos" class="lista"></ul>
+                <p class="ayuda">Marca cada hábito cuando lo cumplas. Los puntos muestran los últimos 7 días.</p>
+            </div>
+        </section>
+
+        <!-- NOTAS -->
+        <section id="vista-notas" class="vista">
+            <div class="tarjeta">
+                <h2>Notas rápidas</h2>
+                <form id="form-nota">
+                    <textarea id="input-nota" rows="3" placeholder="Escribe una idea, una compra, un recordatorio..." maxlength="1000"></textarea>
+                    <button type="submit" class="ancho">Guardar nota</button>
+                </form>
+            </div>
+            <ul id="lista-notas" class="notas"></ul>
+        </section>
+    </main>
+
+    <nav class="barra">
+        <button data-vista="hoy" class="activa"><span>☀️</span>Hoy</button>
+        <button data-vista="habitos"><span>🔁</span>Hábitos</button>
+        <button data-vista="notas"><span>📝</span>Notas</button>
+    </nav>
+
+    <script src="app.js"></script>
 </body>
 </html>
