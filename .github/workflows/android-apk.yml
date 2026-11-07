@@ -16,31 +16,42 @@ jobs:
         with:
           node-version: 20
 
+      # El runner de GitHub ya trae el SDK de Android instalado (ANDROID_HOME)
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 21
-
-      - uses: android-actions/setup-android@v3
+          java-version: 17
 
       - name: Preparar los archivos de la app
         run: |
           mkdir -p www
-          cp -r index.html style.css app.js sw.js manifest.webmanifest icons www/
+          cp -r index.html style.css app.js google.js sw.js manifest.webmanifest icons www/
 
       - name: Crear proyecto Android con Capacitor
         run: |
           npm init -y >/dev/null
-          npm install @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6
-          npx cap init "Mi Día" com.midia.app --web-dir www
+          npm install @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6 @capacitor/local-notifications@6
+          npx cap init "Método Oasis" com.metodooasis.daily --web-dir www
           npx cap add android
           npx cap sync android
+
+      - name: Poner el icono de Método Oasis
+        run: |
+          for d in android/app/src/main/res/mipmap-*; do
+            [ -f "$d/ic_launcher.png" ] && cp icons/icon-192.png "$d/ic_launcher.png"
+            [ -f "$d/ic_launcher_round.png" ] && cp icons/icon-192.png "$d/ic_launcher_round.png"
+            [ -f "$d/ic_launcher_foreground.png" ] && cp icons/icon-maskable-512.png "$d/ic_launcher_foreground.png"
+          done
+          rm -f android/app/src/main/res/mipmap-anydpi-v26/ic_launcher*.xml
 
       - name: Compilar APK
         working-directory: android
         run: ./gradlew assembleDebug --no-daemon
 
+      - name: Renombrar APK
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk metodo-oasis-daily.apk
+
       - uses: actions/upload-artifact@v4
         with:
-          name: mi-dia-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: metodo-oasis-daily-apk
+          path: metodo-oasis-daily.apk

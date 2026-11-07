@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="theme-color" content="#4f46e5">
-    <meta name="description" content="Organiza tu día: tareas, hábitos, agua, ánimo y notas.">
-    <title>Mi Día</title>
+    <meta name="theme-color" content="#0f766e">
+    <meta name="description" content="Método Oasis Daily App: tu día en calma. Tareas, agenda, recordatorios, gastos, hábitos y notas.">
+    <title>Método Oasis Daily App</title>
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="icon" href="icons/icon-192.png">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -14,15 +14,24 @@
 <body>
     <header class="top">
         <div>
-            <p class="fecha" id="fecha"></p>
+            <p class="marca">🌴 Método Oasis</p>
             <h1 id="saludo">Hola</h1>
+            <p class="fecha" id="fecha"></p>
         </div>
-        <button id="instalar" class="btn-instalar" hidden>Instalar</button>
+        <div class="acciones-top">
+            <button id="instalar" class="btn-instalar" hidden>Instalar</button>
+            <button id="abrir-ajustes" class="icono" aria-label="Ajustes">⚙️</button>
+        </div>
     </header>
 
     <main>
-        <!-- HOY -->
+        <!-- ================= HOY ================= -->
         <section id="vista-hoy" class="vista activa">
+            <div class="tarjeta" id="tarjeta-agenda-hoy">
+                <h2>Agenda de hoy</h2>
+                <ul id="agenda-hoy" class="lista"></ul>
+            </div>
+
             <div class="tarjeta">
                 <h2>Tareas de hoy <span class="contador" id="contador-tareas"></span></h2>
                 <form id="form-tarea" class="fila">
@@ -48,7 +57,68 @@
             </div>
         </section>
 
-        <!-- HÁBITOS -->
+        <!-- ================= AGENDA ================= -->
+        <section id="vista-agenda" class="vista">
+            <div class="tarjeta">
+                <div class="mes-cabecera">
+                    <button id="mes-ant" class="icono" aria-label="Mes anterior">‹</button>
+                    <h2 id="mes-titulo"></h2>
+                    <button id="mes-sig" class="icono" aria-label="Mes siguiente">›</button>
+                </div>
+                <div class="dias-semana"><span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
+                <div id="calendario" class="calendario"></div>
+                <p id="estado-google" class="ayuda"></p>
+            </div>
+
+            <div class="tarjeta">
+                <h2 id="dia-titulo">Hoy</h2>
+                <ul id="lista-dia" class="lista"></ul>
+                <div class="fila dos">
+                    <button id="nuevo-evento" class="secundario">+ Evento</button>
+                    <button id="nuevo-recordatorio" class="secundario">+ Recordatorio</button>
+                </div>
+            </div>
+
+            <div class="tarjeta">
+                <h2>Próximos recordatorios</h2>
+                <ul id="lista-recordatorios" class="lista"></ul>
+            </div>
+        </section>
+
+        <!-- ================= GASTOS ================= -->
+        <section id="vista-gastos" class="vista">
+            <div class="tarjeta">
+                <div class="mes-cabecera">
+                    <button id="gastos-ant" class="icono" aria-label="Mes anterior">‹</button>
+                    <h2 id="gastos-mes"></h2>
+                    <button id="gastos-sig" class="icono" aria-label="Mes siguiente">›</button>
+                </div>
+                <p class="total" id="gastos-total"></p>
+                <div class="presupuesto" id="presupuesto-barra" hidden><div></div></div>
+                <p class="ayuda" id="presupuesto-texto"></p>
+                <div id="gastos-categorias" class="categorias"></div>
+            </div>
+
+            <div class="tarjeta">
+                <h2>Nuevo gasto</h2>
+                <form id="form-gasto" class="formulario">
+                    <div class="fila">
+                        <input id="gasto-importe" type="number" inputmode="decimal" step="0.01" min="0.01" placeholder="Importe" required>
+                        <input id="gasto-fecha" type="date" required>
+                    </div>
+                    <input id="gasto-concepto" type="text" placeholder="Concepto (ej: supermercado)" maxlength="80" autocomplete="off">
+                    <div id="gasto-cats" class="chips"></div>
+                    <button type="submit" class="ancho">Guardar gasto</button>
+                </form>
+            </div>
+
+            <div class="tarjeta">
+                <h2>Movimientos del mes</h2>
+                <ul id="lista-gastos" class="lista"></ul>
+            </div>
+        </section>
+
+        <!-- ================= HÁBITOS ================= -->
         <section id="vista-habitos" class="vista">
             <div class="tarjeta">
                 <h2>Mis hábitos</h2>
@@ -61,7 +131,7 @@
             </div>
         </section>
 
-        <!-- NOTAS -->
+        <!-- ================= NOTAS ================= -->
         <section id="vista-notas" class="vista">
             <div class="tarjeta">
                 <h2>Notas rápidas</h2>
@@ -72,14 +142,99 @@
             </div>
             <ul id="lista-notas" class="notas"></ul>
         </section>
+
+        <!-- ================= AJUSTES ================= -->
+        <section id="vista-ajustes" class="vista">
+            <div class="tarjeta">
+                <h2>Cuentas de Google</h2>
+                <p class="ayuda">Conecta tu Google personal y el del trabajo para ver todos tus calendarios juntos y crear eventos en cualquiera de ellos.</p>
+                <ul id="lista-cuentas" class="lista"></ul>
+                <div class="fila dos">
+                    <button id="conectar-personal" class="secundario">+ Personal</button>
+                    <button id="conectar-trabajo" class="secundario">+ Trabajo</button>
+                </div>
+                <details class="avanzado">
+                    <summary>Configuración de Google (ID de cliente)</summary>
+                    <p class="ayuda">Pega aquí el <b>ID de cliente OAuth</b> creado en Google Cloud. Los pasos están en el README del proyecto.</p>
+                    <input id="google-client-id" type="text" placeholder="xxxx.apps.googleusercontent.com" autocomplete="off">
+                </details>
+            </div>
+
+            <div class="tarjeta">
+                <h2>Recordatorios</h2>
+                <p class="ayuda" id="estado-notif"></p>
+                <button id="pedir-notif" class="secundario ancho">Activar notificaciones</button>
+            </div>
+
+            <div class="tarjeta">
+                <h2>Gastos</h2>
+                <label class="campo">Moneda
+                    <select id="ajuste-moneda">
+                        <option value="EUR">Euro (€)</option>
+                        <option value="USD">Dólar (US$)</option>
+                        <option value="MXN">Peso mexicano</option>
+                        <option value="COP">Peso colombiano</option>
+                        <option value="ARS">Peso argentino</option>
+                        <option value="CLP">Peso chileno</option>
+                        <option value="PEN">Sol peruano</option>
+                    </select>
+                </label>
+                <label class="campo">Presupuesto mensual (opcional)
+                    <input id="ajuste-presupuesto" type="number" inputmode="decimal" min="0" step="1" placeholder="Ej: 1200">
+                </label>
+            </div>
+
+            <div class="tarjeta">
+                <h2>Tus datos</h2>
+                <p class="ayuda">Todo se guarda en este teléfono. Haz una copia de seguridad de vez en cuando.</p>
+                <div class="fila dos">
+                    <button id="exportar" class="secundario">Exportar copia</button>
+                    <button id="importar" class="secundario">Importar copia</button>
+                </div>
+                <input id="archivo-importar" type="file" accept="application/json" hidden>
+            </div>
+
+            <p class="pie">Método Oasis Daily App · parte del Método Oasis 🌴</p>
+        </section>
     </main>
+
+    <!-- Hoja para crear evento / recordatorio -->
+    <dialog id="hoja" class="hoja">
+        <form id="form-hoja" method="dialog" class="formulario">
+            <h2 id="hoja-titulo">Nuevo evento</h2>
+            <input id="hoja-texto" type="text" placeholder="Título" maxlength="120" required autocomplete="off">
+            <div class="fila">
+                <input id="hoja-fecha" type="date" required>
+                <input id="hoja-hora" type="time" required>
+            </div>
+            <label class="campo" id="hoja-destino-campo">Guardar en
+                <select id="hoja-destino"></select>
+            </label>
+            <label class="campo" id="hoja-repetir-campo">Repetir
+                <select id="hoja-repetir">
+                    <option value="">No se repite</option>
+                    <option value="diario">Cada día</option>
+                    <option value="semanal">Cada semana</option>
+                </select>
+            </label>
+            <div class="fila dos">
+                <button type="button" id="hoja-cancelar" class="secundario">Cancelar</button>
+                <button type="submit" id="hoja-guardar">Guardar</button>
+            </div>
+        </form>
+    </dialog>
+
+    <div id="aviso" class="aviso" role="status" hidden></div>
 
     <nav class="barra">
         <button data-vista="hoy" class="activa"><span>☀️</span>Hoy</button>
+        <button data-vista="agenda"><span>📅</span>Agenda</button>
+        <button data-vista="gastos"><span>💶</span>Gastos</button>
         <button data-vista="habitos"><span>🔁</span>Hábitos</button>
         <button data-vista="notas"><span>📝</span>Notas</button>
     </nav>
 
+    <script src="google.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
