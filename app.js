@@ -80,6 +80,7 @@ function base() {
         eventos: [], recordatorios: [], gastos: [], cuentas: [],
         rutinas: [], // rutinas del Método Oasis: { id, pilar (0-3), nombre, dias: [] }
         ajustes: { moneda: 'EUR', presupuesto: null, clientId: '', inicioJornada: '09:00', finJornada: '18:30', diasLaborables: [1, 2, 3, 4, 5], avisoCierre: true, ocultarTrabajo: true },
+        checkin: {}, // 'YYYY-MM-DD' -> { carga, energia, sueno, invasion }
         cierres: {}, // 'YYYY-MM-DD' -> 'HH:MM' hora real a la que cerraste la jornada
         modoManual: null, // { dia, activo } para forzar o quitar el Modo Oasis hoy
         prioridades: {}, // 'YYYY-MM-DD' -> [{ texto, hecha }] x3
@@ -231,8 +232,132 @@ function pintarAnimo() {
     cont.replaceChildren();
     ANIMOS.forEach((emoji, i) => cont.append(crear('button', {
         className: actual === i ? 'on' : '', textContent: emoji, ariaLabel: `Ánimo ${i + 1} de 5`,
-        onclick: () => { datos.animo[claveDia()] = actual === i ? undefined : i; guardar(); pintarAnimo(); },
+        onclick: () => { datos.animo[claveDia()] = actual === i ? undefined : i; guardar(); pintarAnimo(); pintarCheckin(); },
     })));
+}
+
+// =====================================================================
+// DIAGNÓSTICO: CHECK-IN DIARIO
+// =====================================================================
+const ESCALAS = [
+    { clave: 'carga', pregunta: '¿Cuánta carga de trabajo sientes?', extremos: ['Ligera', 'Desbordado'] },
+    { clave: 'energia', pregunta: '¿Cómo está tu energía?', extremos: ['Agotado', 'A tope'] },
+];
+const INVASION = [['no', 'No'], ['poco', 'Un poco'], ['si', 'Sí, mucho']];
+
+function checkinDe(dia) {
+    if (!datos.checkin[dia]) datos.checkin[dia] = {};
+    return datos.checkin[dia];
+}
+
+function pintarCheckin() {
+    const hoy = claveDia();
+    const c = checkinDe(hoy);
+    const cont = $('#checkin');
+    cont.replaceChildren();
+    const repintar = () => { guardar(); pintarCheckin(); pintarTendencia(); };
+
+    ESCALAS.forEach((e) => {
+        const fila = crear('div', { className: 'escala' });
+        for (let n = 1; n <= 5; n++) {
+            fila.append(crear('button', {
+                type: 'button', className: c[e.clave] === n ? 'on' : '', textContent: String(n),
+                ariaLabel: `${e.pregunta} ${n} de 5`,
+                onclick: () => { c[e.clave] = c[e.clave] === n ? undefined : n; repintar(); },
+            }));
+        }
+        cont.append(
+            crear('p', { className: 'pregunta', textContent: e.pregunta }),
+            fila,
+            crear('div', { className: 'extremos' }, [crear('span', { textContent: e.extremos[0] }), crear('span', { textContent: e.extremos[1] })]),
+        );
+    });
+
+    // Sueño de anoche
+    const horas = c.sueno;
+    cont.append(
+        crear('p', { className: 'pregunta', textContent: '¿Cuántas horas dormiste anoche?' }),
+        crear('div', { className: 'fila centrada sueno' }, [
+            crear('button', { type: 'button', className: 'secundario', textContent: '−', ariaLabel: 'Menos sueño',
+                onclick: () => { c.sueno = Math.max(0, (c.sueno ?? 7.5) - 0.5); repintar(); } }),
+            crear('span', { className: 'horas', textContent: horas == null ? '— h' : `${String(horas).replace('.', ',')} h` }),
+            crear('button', { type: 'button', className: 'secundario', textContent: '+', ariaLabel: 'Más sueño',
+                onclick: () => { c.sueno = Math.min(14, (c.sueno ?? 6.5) + 0.5); repintar(); } }),
+        ]),
+    );
+
+    // ¿El trabajo se te metió en la cabeza fuera de horario?
+    const inv = crear('div', { className: 'chips' });
+    INVASION.forEach(([v, t]) => inv.append(crear('button', {
+        type: 'button', className: 'chip' + (c.invasion === v ? ' on' : ''), textContent: t,
+        onclick: () => { c.invasion = c.invasion === v ? undefined : v; repintar(); },
+    })));
+    cont.append(crear('p', { className: 'pregunta', textContent: 'Ayer, fuera de tu horario, ¿el trabajo se te metió en la cabeza?' }), inv);
+
+    const respondidas = ['carga', 'energia', 'sueno', 'invasion'].filter((k) => c[k] != null).length + (datos.animo[hoy] != null ? 1 : 0);
+    $('#contador-checkin').textContent = respondidas === 5 ? 'Completo ✓' : `${respondidas}/5`;
+}
+
+function ultimosDias(n = 7) {
+    return Array.from({ length: n }, (_, i) => diasAtras(n - 1 - i));
+}
+
+function media(valores) {
+    const v = valores.filter((x) => typeof x === 'number');
+    return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
+}
+
+function minutosDe(hhmm) {
+    const [h, m] = hhmm.split(':').map(Number);
+    return h * 60 + m;
+}
+
+function pintarTendencia() {
+    const dias = ultimosDias(7);
+    const cont = $('#tendencia');
+    cont.replaceChildren();
+    const serie = (titulo, clave, color) => {
+        const barras = crear('div', { className: 'barras' });
+        dias.forEach((d) => {
+            const v = (datos.checkin[d] || {})[clave];
+            const letra = 'DLMXJVS'[fechaDeClave(d).getDay()];
+            barras.append(crear('div', { className: 'col', title: `${d}: ${v ?? 'sin dato'}` }, [
+                crear('div', { className: 'barra-v' }, [Object.assign(crear('i'), { style: `height:${v ? v * 20 : 0}%;background:${color}` })]),
+                crear('span', { textContent: letra }),
+            ]));
+        });
+        const m = media(dias.map((d) => (datos.checkin[d] || {})[clave]));
+        return crear('div', { className: 'serie' }, [
+            crear('p', { className: 'serie-titulo' }, [crear('span', { textContent: titulo }), crear('b', { textContent: m == null ? '—' : m.toFixed(1).replace('.', ',') + '/5' })]),
+            barras,
+        ]);
+    };
+    cont.append(serie('Carga', 'carga', 'var(--acento)'), serie('Energía', 'energia', 'var(--salvia, var(--ok))'));
+
+    const sueno = media(dias.map((d) => (datos.checkin[d] || {}).sueno));
+    const invasiones = dias.filter((d) => ['si', 'poco'].includes((datos.checkin[d] || {}).invasion)).length;
+    const cierres = dias.map((d) => datos.cierres[d]).filter(Boolean);
+    const mediaCierre = cierres.length ? Math.round(media(cierres.map(minutosDe))) : null;
+    const fmt = (min) => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
+    cont.append(crear('div', { className: 'datos-dia' }, [
+        crear('div', {}, [crear('b', { textContent: sueno == null ? '—' : `${sueno.toFixed(1).replace('.', ',')} h` }), crear('span', { textContent: 'sueño medio' })]),
+        crear('div', {}, [crear('b', { textContent: mediaCierre == null ? '—' : fmt(mediaCierre) }), crear('span', { textContent: 'cierre medio' })]),
+        crear('div', {}, [crear('b', { textContent: `${invasiones}/7` }), crear('span', { textContent: 'días con trabajo en la cabeza' })]),
+    ]));
+
+    // Alertas sencillas a partir de los datos
+    const alertas = [];
+    const ult3 = ultimosDias(3).map((d) => (datos.checkin[d] || {}).carga);
+    if (ult3.every((v) => v >= 4)) alertas.push('Llevas 3 días con la carga alta. ¿Qué puedes delegar o aplazar esta semana?');
+    if (sueno != null && sueno < 6.5) alertas.push('Estás durmiendo menos de 6,5 h de media. El descanso profundo empieza por el sueño.');
+    if (invasiones >= 3) alertas.push('El trabajo se te ha metido en la cabeza fuera de horario varios días. Prueba el ritual de cierre cada tarde.');
+    const finJ = minutosDe(datos.ajustes.finJornada);
+    if (mediaCierre != null && mediaCierre - finJ > 45) alertas.push(`Sueles cerrar ${duracionTexto(mediaCierre - finJ)} más tarde de tu hora. Pon el límite en tu agenda.`);
+    const energia3 = ultimosDias(3).map((d) => (datos.checkin[d] || {}).energia);
+    if (energia3.every((v) => v != null && v <= 2)) alertas.push('Tu energía lleva 3 días baja. Protege un hueco hoy solo para ti.');
+    const a = $('#alertas');
+    a.replaceChildren();
+    alertas.forEach((t) => a.append(crear('p', { className: 'alerta', textContent: t })));
 }
 
 // =====================================================================
@@ -1172,6 +1297,8 @@ function pintarTodo() {
     pintarTareas();
     pintarAgua();
     pintarAnimo();
+    pintarCheckin();
+    pintarTendencia();
     pintarOasis();
     pintarHabitos();
     pintarNotas();

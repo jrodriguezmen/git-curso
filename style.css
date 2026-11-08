@@ -332,3 +332,21 @@ button.mini { padding: 4px 10px; min-height: 32px; font-size: .8rem; }
 .interruptor input { width: 20px; height: 20px; flex: none; margin: 1px 0 0; accent-color: var(--ok); }
 .dia-chip { width: 40px; padding: 0; }
 p.campo { margin-bottom: 6px; }
+
+/* ---------- Check-in y tendencia ---------- */
+.pregunta { margin: 16px 0 8px; font-weight: 600; font-size: .95rem; }
+.escala { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.escala button { background: var(--fondo); color: var(--texto); border: 1px solid var(--borde); font-weight: 600; padding: 0; }
+.escala button.on { background: var(--primario); border-color: var(--primario); color: var(--fondo); }
+.extremos { display: flex; justify-content: space-between; font-size: .75rem; color: var(--suave); margin-top: 4px; }
+.sueno { align-items: center; gap: 16px; margin-top: 0; }
+.sueno button { width: 48px; font-size: 1.3rem; padding: 0; }
+.horas { font-family: var(--display); font-size: 1.5rem; min-width: 80px; text-align: center; }
+.serie { margin-bottom: 14px; }
+.serie-titulo { display: flex; justify-content: space-between; margin: 0 0 6px; font-size: .9rem; }
+.barras { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.col { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.col span { font-size: .7rem; color: var(--suave); }
+.barra-v { width: 100%; height: 48px; background: var(--fondo); border-radius: 6px; display: flex; align-items: flex-end; overflow: hidden; }
+.barra-v i { width: 100%; border-radius: 6px; }
+.alerta { margin: 12px 0 0; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, var(--acento) 25%, transparent); font-size: .9rem; line-height: 1.4; }
