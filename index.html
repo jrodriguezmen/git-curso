@@ -125,7 +125,19 @@
                     <h2 id="gastos-mes"></h2>
                     <button id="gastos-sig" class="icono" aria-label="Mes siguiente">›</button>
                 </div>
+                <div class="segmentado tres" id="gastos-filtro">
+                    <button type="button" data-filtro="todo" class="on">Todo</button>
+                    <button type="button" data-filtro="personal">Personal</button>
+                    <button type="button" data-filtro="empresa">Empresa</button>
+                </div>
                 <p class="total" id="gastos-total"></p>
+                <div id="gastos-empresa" class="empresa-resumen" hidden>
+                    <p class="ayuda sin-margen" id="empresa-texto"></p>
+                    <div class="fila dos">
+                        <button id="compartir-nota" type="button">Enviar nota de gastos</button>
+                        <button id="marcar-reembolsado" type="button" class="secundario">Ya me lo pagaron</button>
+                    </div>
+                </div>
                 <div class="presupuesto" id="presupuesto-barra" hidden><div></div></div>
                 <p class="ayuda" id="presupuesto-texto"></p>
                 <div id="gastos-categorias" class="categorias"></div>
@@ -138,8 +150,16 @@
                         <input id="gasto-importe" type="number" inputmode="decimal" step="0.01" min="0.01" placeholder="Importe" required>
                         <input id="gasto-fecha" type="date" required>
                     </div>
-                    <input id="gasto-concepto" type="text" placeholder="Concepto (ej: supermercado)" maxlength="80" autocomplete="off">
+                    <input id="gasto-concepto" type="text" placeholder="Concepto (ej: comida con cliente)" maxlength="80" autocomplete="off">
+                    <div class="segmentado" id="gasto-tipo">
+                        <button type="button" data-tipo="personal" class="on">Personal</button>
+                        <button type="button" data-tipo="empresa">💼 Empresa</button>
+                    </div>
                     <div id="gasto-cats" class="chips"></div>
+                    <label class="boton-ticket" id="ticket-label">
+                        <input id="gasto-ticket" type="file" accept="image/*" capture="environment" hidden>
+                        <span id="ticket-texto">📷 Añadir foto del ticket</span>
+                    </label>
                     <button type="submit" class="ancho">Guardar gasto</button>
                 </form>
             </div>
@@ -303,6 +323,11 @@
                 <button type="submit" id="hoja-guardar">Guardar</button>
             </div>
         </form>
+    </dialog>
+
+    <dialog id="visor-ticket" class="hoja visor">
+        <img id="ticket-img" alt="Ticket del gasto">
+        <form method="dialog"><button class="ancho">Cerrar</button></form>
     </dialog>
 
     <div id="aviso" class="aviso" role="status" hidden></div>

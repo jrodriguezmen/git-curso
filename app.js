@@ -7,6 +7,8 @@ const CATEGORIAS = [
     { id: 'casa', nombre: 'Casa', emoji: '🏠' },
     { id: 'facturas', nombre: 'Facturas', emoji: '💡' },
     { id: 'transporte', nombre: 'Transporte', emoji: '🚗' },
+    { id: 'restaurante', nombre: 'Restaurantes', emoji: '🍽️' },
+    { id: 'viaje', nombre: 'Viajes y hotel', emoji: '✈️' },
     { id: 'salud', nombre: 'Salud', emoji: '💊' },
     { id: 'ocio', nombre: 'Ocio', emoji: '🎉' },
     { id: 'ropa', nombre: 'Ropa', emoji: '👕' },
@@ -1237,26 +1239,94 @@ function pintarChipsCategorias() {
     })));
 }
 
+// ---------- Fotos de tickets (se guardan en el teléfono, en IndexedDB) ----------
+const Tickets = (() => {
+    let db = null;
+    function abrir() {
+        if (db) return Promise.resolve(db);
+        return new Promise((ok, mal) => {
+            const r = indexedDB.open('oasis-tickets', 1);
+            r.onupgradeneeded = () => r.result.createObjectStore('tickets');
+            r.onsuccess = () => { db = r.result; ok(db); };
+            r.onerror = () => mal(r.error);
+        });
+    }
+    async function op(modo, fn) {
+        const d = await abrir();
+        return new Promise((ok, mal) => {
+            const t = d.transaction('tickets', modo);
+            const r = fn(t.objectStore('tickets'));
+            t.oncomplete = () => ok(r && r.result);
+            t.onerror = () => mal(t.error);
+        });
+    }
+    return {
+        guardar: (clave, blob) => op('readwrite', (s) => s.put(blob, clave)),
+        leer: (clave) => op('readonly', (s) => s.get(clave)),
+        borrar: (clave) => op('readwrite', (s) => s.delete(clave)),
+    };
+})();
+
+// Reduce la foto a ~1200 px en JPEG para que ocupe poco
+function comprimirImagen(archivo, max = 1200) {
+    return new Promise((ok, mal) => {
+        const img = new Image();
+        img.onload = () => {
+            const k = Math.min(1, max / Math.max(img.width, img.height));
+            const c = document.createElement('canvas');
+            c.width = Math.round(img.width * k);
+            c.height = Math.round(img.height * k);
+            c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+            URL.revokeObjectURL(img.src);
+            c.toBlob((b) => (b ? ok(b) : mal(new Error('No se pudo leer la foto'))), 'image/jpeg', 0.7);
+        };
+        img.onerror = () => mal(new Error('No se pudo leer la foto'));
+        img.src = URL.createObjectURL(archivo);
+    });
+}
+
+let filtroGastos = 'todo';
+let tipoGasto = 'personal';
+let ticketPendiente = null;
+
 function pintarGastos() {
     const prefijo = claveDia(mesGastos).slice(0, 7);
     $('#gastos-mes').textContent = mayuscula(mesGastos.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }));
-    const delMes = datos.gastos.filter((g) => g.fecha.startsWith(prefijo)).sort((a, b) => b.fecha.localeCompare(a.fecha) || b.creado - a.creado);
+    const todosMes = datos.gastos.filter((g) => g.fecha.startsWith(prefijo));
+    const delMes = todosMes
+        .filter((g) => filtroGastos === 'todo' || (filtroGastos === 'empresa') === !!g.empresa)
+        .sort((a, b) => b.fecha.localeCompare(a.fecha) || b.creado - a.creado);
     const total = delMes.reduce((s, g) => s + g.importe, 0);
     $('#gastos-total').textContent = moneda(total);
 
+    // El presupuesto se compara con tus gastos personales (los de empresa te los reembolsan)
+    const personal = todosMes.filter((g) => !g.empresa).reduce((s, g) => s + g.importe, 0);
     const presupuesto = Number(datos.ajustes.presupuesto) || 0;
     const barra = $('#presupuesto-barra');
-    if (presupuesto > 0) {
-        const pct = Math.min(100, (total / presupuesto) * 100);
+    if (presupuesto > 0 && filtroGastos !== 'empresa') {
         barra.hidden = false;
-        barra.firstElementChild.style.width = pct + '%';
-        barra.classList.toggle('pasado', total > presupuesto);
-        $('#presupuesto-texto').textContent = total > presupuesto
-            ? `Te has pasado ${moneda(total - presupuesto)} del presupuesto (${moneda(presupuesto)}).`
-            : `Te quedan ${moneda(presupuesto - total)} de ${moneda(presupuesto)}.`;
+        barra.firstElementChild.style.width = Math.min(100, (personal / presupuesto) * 100) + '%';
+        barra.classList.toggle('pasado', personal > presupuesto);
+        $('#presupuesto-texto').textContent = personal > presupuesto
+            ? `Gasto personal: te has pasado ${moneda(personal - presupuesto)} del presupuesto (${moneda(presupuesto)}).`
+            : `Gasto personal: te quedan ${moneda(presupuesto - personal)} de ${moneda(presupuesto)}.`;
     } else {
         barra.hidden = true;
-        $('#presupuesto-texto').textContent = delMes.length ? `${delMes.length} gastos este mes.` : '';
+        $('#presupuesto-texto').textContent = delMes.length && filtroGastos !== 'empresa' ? `${delMes.length} ${delMes.length === 1 ? 'gasto' : 'gastos'} este mes.` : '';
+    }
+
+    // Resumen de empresa: pendiente de reembolso
+    const empresaPend = todosMes.filter((g) => g.empresa && !g.reembolsado);
+    const caja = $('#gastos-empresa');
+    caja.hidden = filtroGastos !== 'empresa';
+    if (!caja.hidden) {
+        const pend = empresaPend.reduce((s, g) => s + g.importe, 0);
+        const sinTicket = empresaPend.filter((g) => !g.ticket).length;
+        $('#empresa-texto').textContent = empresaPend.length
+            ? `Pendiente de reembolso: ${moneda(pend)} en ${empresaPend.length} ${empresaPend.length === 1 ? 'gasto' : 'gastos'}.` + (sinTicket ? ` ⚠️ ${sinTicket} sin foto del ticket.` : '')
+            : 'No tienes gastos de empresa pendientes de reembolso este mes.';
+        $('#compartir-nota').disabled = !empresaPend.length;
+        $('#marcar-reembolsado').disabled = !empresaPend.length;
     }
 
     const porCat = CATEGORIAS.map((c) => ({ ...c, suma: delMes.filter((g) => g.cat === c.id).reduce((s, g) => s + g.importe, 0) }))
@@ -1278,30 +1348,146 @@ function pintarGastos() {
     if (!delMes.length) { lista.append(vacio('Sin gastos este mes.')); return; }
     delMes.forEach((g) => {
         const cat = CATEGORIAS.find((c) => c.id === g.cat) || CATEGORIAS[CATEGORIAS.length - 1];
-        lista.append(crear('li', {}, [
+        const etiquetas = [fechaDeClave(g.fecha).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })];
+        if (g.empresa) etiquetas.push(g.reembolsado ? 'Empresa · reembolsado ✓' : 'Empresa · pendiente');
+        const hijos = [
             crear('span', { className: 'emoji', textContent: cat.emoji }),
             crear('div', { className: 'texto' }, [
                 crear('span', { textContent: g.concepto || cat.nombre }),
-                crear('span', { className: 'racha', textContent: fechaDeClave(g.fecha).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' }) }),
+                crear('span', { className: 'racha', textContent: etiquetas.join(' · ') }),
             ]),
+        ];
+        if (g.ticket) hijos.push(crear('button', { className: 'borrar', textContent: '📎', ariaLabel: 'Ver ticket', onclick: () => verTicket(g.id) }));
+        hijos.push(
             crear('span', { className: 'importe', textContent: moneda(g.importe) }),
-            botonBorrar('Borrar gasto', () => { datos.gastos = datos.gastos.filter((x) => x.id !== g.id); guardar(); pintarGastos(); }),
-        ]));
+            botonBorrar('Borrar gasto', () => {
+                if (!confirm(`¿Borrar el gasto de ${moneda(g.importe)}?`)) return;
+                datos.gastos = datos.gastos.filter((x) => x.id !== g.id);
+                if (g.ticket) Tickets.borrar(g.id).catch(() => {});
+                guardar(); pintarGastos();
+            }),
+        );
+        lista.append(crear('li', {}, hijos));
     });
 }
 
-$('#form-gasto').addEventListener('submit', (e) => {
+async function verTicket(idGasto) {
+    try {
+        const blob = await Tickets.leer(idGasto);
+        if (!blob) { aviso('No se encontró la foto del ticket'); return; }
+        const img = $('#ticket-img');
+        if (img.src) URL.revokeObjectURL(img.src);
+        img.src = URL.createObjectURL(blob);
+        $('#visor-ticket').showModal();
+    } catch (e) { aviso('No se pudo abrir el ticket'); }
+}
+
+function seleccionarSegmento(contenedor, boton) {
+    contenedor.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === boton));
+}
+
+document.querySelectorAll('#gastos-filtro button').forEach((b) => b.addEventListener('click', () => {
+    filtroGastos = b.dataset.filtro;
+    seleccionarSegmento($('#gastos-filtro'), b);
+    pintarGastos();
+}));
+document.querySelectorAll('#gasto-tipo button').forEach((b) => b.addEventListener('click', () => {
+    tipoGasto = b.dataset.tipo;
+    seleccionarSegmento($('#gasto-tipo'), b);
+}));
+
+$('#gasto-ticket').addEventListener('change', async (e) => {
+    const archivo = e.target.files[0];
+    if (!archivo) return;
+    try {
+        ticketPendiente = await comprimirImagen(archivo);
+        $('#ticket-texto').textContent = '✓ Ticket añadido (toca para cambiarlo)';
+        $('#ticket-label').classList.add('on');
+        // Un ticket suele ser de empresa
+        if (tipoGasto !== 'empresa') $('#gasto-tipo button[data-tipo=empresa]').click();
+    } catch (err) { aviso(err.message); }
+});
+
+$('#form-gasto').addEventListener('submit', async (e) => {
     e.preventDefault();
     const importe = Math.round(parseFloat($('#gasto-importe').value.replace(',', '.')) * 100) / 100;
     if (!(importe > 0)) { aviso('Escribe un importe válido'); return; }
     const fecha = $('#gasto-fecha').value || claveDia();
-    datos.gastos.push({ id: id(), importe, concepto: $('#gasto-concepto').value.trim(), cat: categoriaElegida, fecha, creado: Date.now() });
+    const gasto = { id: id(), importe, concepto: $('#gasto-concepto').value.trim(), cat: categoriaElegida, fecha, creado: Date.now(), empresa: tipoGasto === 'empresa' };
+    if (ticketPendiente) {
+        try { await Tickets.guardar(gasto.id, ticketPendiente); gasto.ticket = true; } catch (err) { aviso('No se pudo guardar la foto del ticket'); }
+    }
+    datos.gastos.push(gasto);
     guardar();
     $('#gasto-importe').value = '';
     $('#gasto-concepto').value = '';
+    ticketPendiente = null;
+    $('#gasto-ticket').value = '';
+    $('#ticket-texto').textContent = '📷 Añadir foto del ticket';
+    $('#ticket-label').classList.remove('on');
     mesGastos = fechaDeClave(fecha); mesGastos.setDate(1);
     pintarGastos();
-    aviso(`Gasto de ${moneda(importe)} guardado`);
+    aviso(`Gasto de ${moneda(importe)} guardado` + (gasto.empresa ? ' (empresa)' : ''));
+});
+
+// ---------- Nota de gastos: CSV + fotos, para enviar a finanzas ----------
+function csvCampo(v) {
+    const t = String(v ?? '');
+    return /[;"\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
+}
+
+async function compartirNotaGastos() {
+    const prefijo = claveDia(mesGastos).slice(0, 7);
+    const lista = datos.gastos.filter((g) => g.empresa && !g.reembolsado && g.fecha.startsWith(prefijo)).sort((a, b) => a.fecha.localeCompare(b.fecha));
+    if (!lista.length) return;
+    const nombreMes = mesGastos.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+    const filas = [['Fecha', 'Concepto', 'Categoría', 'Importe', 'Moneda', 'Ticket']];
+    const archivos = [];
+    for (const [i, g] of lista.entries()) {
+        const cat = CATEGORIAS.find((c) => c.id === g.cat);
+        let nombreTicket = '';
+        if (g.ticket) {
+            const blob = await Tickets.leer(g.id).catch(() => null);
+            if (blob) {
+                nombreTicket = `ticket-${String(i + 1).padStart(2, '0')}-${g.fecha}.jpg`;
+                archivos.push(new File([blob], nombreTicket, { type: 'image/jpeg' }));
+            }
+        }
+        filas.push([g.fecha, g.concepto, cat ? cat.nombre : '', g.importe.toFixed(2).replace('.', ','), datos.ajustes.moneda, nombreTicket]);
+    }
+    const total = lista.reduce((s, g) => s + g.importe, 0);
+    filas.push(['', 'TOTAL', '', total.toFixed(2).replace('.', ','), datos.ajustes.moneda, '']);
+    // BOM para que Excel abra bien las tildes; separador ';' (Excel en español)
+    const csv = '﻿' + filas.map((f) => f.map(csvCampo).join(';')).join('\r\n');
+    const nombre = `nota-de-gastos-${prefijo}.csv`;
+    const archivoCsv = new File([csv], nombre, { type: 'text/csv' });
+    const texto = `Nota de gastos de ${nombreMes}: ${lista.length} gastos, total ${moneda(total)}.`;
+
+    const todos = [archivoCsv, ...archivos];
+    try {
+        if (navigator.canShare && navigator.canShare({ files: todos })) {
+            await navigator.share({ title: `Nota de gastos ${nombreMes}`, text: texto, files: todos });
+            return;
+        }
+    } catch (err) {
+        if (err.name === 'AbortError') return;
+    }
+    // Sin "compartir": se descarga el CSV (y los tickets uno a uno)
+    for (const f of todos) {
+        const a = crear('a', { href: URL.createObjectURL(f), download: f.name });
+        document.body.append(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    }
+    aviso(`${texto} Descargado.`);
+}
+
+$('#compartir-nota').addEventListener('click', () => compartirNotaGastos().catch(() => aviso('No se pudo preparar la nota de gastos')));
+$('#marcar-reembolsado').addEventListener('click', () => {
+    const prefijo = claveDia(mesGastos).slice(0, 7);
+    const lista = datos.gastos.filter((g) => g.empresa && !g.reembolsado && g.fecha.startsWith(prefijo));
+    if (!lista.length || !confirm(`¿Marcar ${lista.length} gastos de empresa como reembolsados?`)) return;
+    lista.forEach((g) => { g.reembolsado = true; });
+    guardar(); pintarGastos();
 });
 $('#gastos-ant').addEventListener('click', () => { mesGastos.setMonth(mesGastos.getMonth() - 1); pintarGastos(); });
 $('#gastos-sig').addEventListener('click', () => { mesGastos.setMonth(mesGastos.getMonth() + 1); pintarGastos(); });

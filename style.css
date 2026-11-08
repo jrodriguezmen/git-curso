@@ -358,3 +358,11 @@ p.campo { margin-bottom: 6px; }
 .segmentado button.on { background: var(--tarjeta); color: var(--texto); font-weight: 700; box-shadow: var(--sombra); }
 .racha.vencido { color: var(--peligro); font-weight: 600; }
 .racha.hoy { color: var(--ok); font-weight: 600; }
+
+/* ---------- Gastos de empresa ---------- */
+.segmentado.tres { grid-template-columns: repeat(3, 1fr); margin-bottom: 4px; }
+.empresa-resumen { margin-top: 12px; }
+.empresa-resumen[hidden] { display: none; }
+.boton-ticket { display: block; text-align: center; padding: 12px; border: 1.5px dashed var(--borde); border-radius: 12px; color: var(--suave); cursor: pointer; font-weight: 500; }
+.boton-ticket.on { border-style: solid; border-color: var(--ok); color: var(--ok); }
+.visor img { width: 100%; max-height: 70vh; object-fit: contain; border-radius: 12px; background: var(--fondo); }
