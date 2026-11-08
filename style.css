@@ -366,3 +366,16 @@ p.campo { margin-bottom: 6px; }
 .boton-ticket { display: block; text-align: center; padding: 12px; border: 1.5px dashed var(--borde); border-radius: 12px; color: var(--suave); cursor: pointer; font-weight: 500; }
 .boton-ticket.on { border-style: solid; border-color: var(--ok); color: var(--ok); }
 .visor img { width: 100%; max-height: 70vh; object-fit: contain; border-radius: 12px; background: var(--fondo); }
+
+/* ---------- Revisión semanal ---------- */
+.datos-semana { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; text-align: center; }
+.datos-semana div { background: var(--fondo); border-radius: 12px; padding: 10px 4px; display: flex; flex-direction: column; }
+.datos-semana b { font-family: var(--display); font-size: 1.15rem; font-weight: 600; }
+.datos-semana span { font-size: .72rem; color: var(--suave); line-height: 1.25; }
+#tarjeta-revision.toca { border: 2px solid var(--acento); }
+#tarjeta-revision .marca { margin-bottom: 2px; }
+.campo textarea, .campo input { color: var(--texto); }
+.foco { margin: 8px 0 0; font-size: .9rem; font-weight: 600; color: var(--ok); line-height: 1.4; }
+.foco[hidden] { display: none; }
+.foco span { display: block; }
+#lista-revisiones .texto { gap: 2px; }

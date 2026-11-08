@@ -2,12 +2,18 @@
 
 La app diaria del **[Método Oasis](https://metodooasis.com/)**: para que el trabajo salga de tu cabeza y recuperes el tiempo que es tuyo.
 
-- 🌿 **Oasis**: los cuatro pilares del método (1 Diagnóstico, 2 Límites, 3 Descanso profundo, 4 Plan de vuelta), con tus rutinas diarias de cada pilar, su racha 🔥 y otros hábitos.
-- ☀️ **Hoy**: tu agenda del día (Google personal + trabajo), tareas, agua y ánimo.
-- 📅 **Agenda**: calendario mensual con tus eventos de Google y del móvil, y **recordatorios** (una vez, cada día o cada semana).
-- 💶 **Gastos**: apunta gastos por categoría, mira el total del mes y tu presupuesto.
-- 📝 **Notas**: ideas, compras, apuntes.
-- ⚙️ **Ajustes**: cuentas de Google, notificaciones, moneda, presupuesto y copia de seguridad.
+- ☀️ **Hoy**
+  - **Lo importante hoy**: tus 3 prioridades (lo que quedó ayer se ofrece para hoy).
+  - **Agenda de hoy** con Google personal + trabajo: citas, tiempo ocupado, % de jornada, siguiente reunión y **huecos libres**.
+  - **Modo Oasis**: fuera de tu jornada oculta el calendario del trabajo y te recuerda cuándo vuelves.
+  - **Ritual de cierre** en la última hora de trabajo, con aviso 15 min antes.
+  - **Check-in** diario: ánimo, carga, energía, sueño y si el trabajo invadió tu tiempo libre.
+  - Seguimientos vencidos, tareas y agua.
+- 🌿 **Oasis**: los 4 pilares del método (Diagnóstico, Límites, Descanso profundo, Plan de vuelta) con tus rutinas, tendencia de 7 días con alertas y **revisión semanal** (el foco de la semana aparece cada día en Hoy).
+- 📅 **Agenda**: calendario mensual, eventos y recordatorios (una vez, diarios o semanales).
+- 💶 **Gastos**: personal o **empresa** con foto del ticket, presupuesto y **nota de gastos** (CSV + tickets) para enviar a finanzas.
+- 🤝 **Equipo**: seguimientos de lo que has delegado y lo que esperas de otros, por persona (ideal para preparar 1:1), y notas rápidas.
+- ⚙️ **Ajustes**: cuentas de Google, horario y días de trabajo, notificaciones, moneda, presupuesto y copia de seguridad.
 
 Tus datos se guardan en tu teléfono.
 

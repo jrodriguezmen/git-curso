@@ -84,6 +84,7 @@ function base() {
         ajustes: { moneda: 'EUR', presupuesto: null, clientId: '', inicioJornada: '09:00', finJornada: '18:30', diasLaborables: [1, 2, 3, 4, 5], avisoCierre: true, ocultarTrabajo: true },
         checkin: {}, // 'YYYY-MM-DD' -> { carga, energia, sueno, invasion }
         seguimientos: [], // { id, tipo: 'delegado'|'espero', persona, asunto, revisar: 'YYYY-MM-DD', hecho, creado }
+        revisiones: {}, // lunes 'YYYY-MM-DD' -> { bien, energia, foco, limite, fecha }
         cierres: {}, // 'YYYY-MM-DD' -> 'HH:MM' hora real a la que cerraste la jornada
         modoManual: null, // { dia, activo } para forzar o quitar el Modo Oasis hoy
         prioridades: {}, // 'YYYY-MM-DD' -> [{ texto, hecha }] x3
@@ -580,6 +581,117 @@ $('#form-seg').addEventListener('submit', (e) => {
     $('#seg-fecha').value = claveDia(sumarLaborables(2));
     pintarSeguimientos();
     aviso(`Seguimiento con ${persona} guardado`);
+});
+
+// =====================================================================
+// PLAN DE VUELTA: REVISIÓN SEMANAL
+// =====================================================================
+function lunesDe(fecha = new Date()) {
+    const f = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate());
+    f.setDate(f.getDate() - ((f.getDay() + 6) % 7));
+    return f;
+}
+
+function diasDeSemana(lunes) {
+    return Array.from({ length: 7 }, (_, i) => { const d = new Date(lunes); d.setDate(d.getDate() + i); return claveDia(d); });
+}
+
+function datosSemana(lunes) {
+    const dias = diasDeSemana(lunes);
+    const hoy = claveDia();
+    const pasados = dias.filter((d) => d <= hoy);
+    const pri = pasados.flatMap((d) => (datos.prioridades[d] || []).filter((p) => p.texto));
+    const finJ = minutosDe(datos.ajustes.finJornada);
+    const laborables = pasados.filter((d) => datos.ajustes.diasLaborables.includes(fechaDeClave(d).getDay()));
+    const aTiempo = laborables.filter((d) => datos.cierres[d] && minutosDe(datos.cierres[d]) <= finJ + 15).length;
+    const segCerrados = datos.seguimientos.filter((x) => x.hecho && x.revisar >= dias[0] && x.revisar <= dias[6]).length;
+    const gasto = datos.gastos.filter((g) => g.fecha >= dias[0] && g.fecha <= dias[6] && !g.empresa).reduce((s2, g) => s2 + g.importe, 0);
+    return {
+        prioridades: `${pri.filter((p) => p.hecha).length}/${pri.length}`,
+        cierres: `${aTiempo}/${laborables.length}`,
+        carga: media(pasados.map((d) => (datos.checkin[d] || {}).carga)),
+        energia: media(pasados.map((d) => (datos.checkin[d] || {}).energia)),
+        seguimientos: segCerrados,
+        gasto,
+    };
+}
+
+function revisionActual() {
+    return claveDia(lunesDe());
+}
+
+function pintarRevision() {
+    const clave = revisionActual();
+    const lunes = fechaDeClave(clave);
+    const domingo = new Date(lunes); domingo.setDate(domingo.getDate() + 6);
+    const f = (d) => d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+    $('#revision-titulo').textContent = `Revisión semanal · ${f(lunes)} – ${f(domingo)}`;
+
+    const d = datosSemana(lunes);
+    const n1 = (x) => (x == null ? '—' : x.toFixed(1).replace('.', ','));
+    const cont = $('#revision-datos');
+    cont.replaceChildren(...[
+        [d.prioridades, 'prioridades cumplidas'],
+        [d.cierres, 'días cerrados a tiempo'],
+        [String(d.seguimientos), 'seguimientos resueltos'],
+        [n1(d.carga), 'carga media'],
+        [n1(d.energia), 'energía media'],
+        [moneda(d.gasto), 'gasto personal'],
+    ].map(([v, t]) => crear('div', {}, [crear('b', { textContent: v }), crear('span', { textContent: t })])));
+
+    const r = datos.revisiones[clave] || {};
+    $('#rev-bien').value = r.bien || '';
+    $('#rev-energia').value = r.energia || '';
+    $('#rev-foco').value = r.foco || '';
+    $('#rev-limite').value = r.limite || '';
+
+    // Destacar la tarjeta a partir del último día laborable por la tarde
+    const ahora = new Date();
+    const laborables = datos.ajustes.diasLaborables.map((x) => (x + 6) % 7); // 0 = lunes
+    const ultimo = Math.max(...laborables, 4);
+    const diaSemana = (ahora.getDay() + 6) % 7;
+    const toca = !r.fecha && (diaSemana > ultimo || (diaSemana === ultimo && ahora.getHours() >= 13));
+    $('#tarjeta-revision').classList.toggle('toca', toca);
+
+    const anteriores = Object.entries(datos.revisiones).filter(([k]) => k !== clave).sort((a, b) => b[0].localeCompare(a[0]));
+    $('#revisiones-anteriores').hidden = !anteriores.length;
+    const lista = $('#lista-revisiones');
+    lista.replaceChildren();
+    anteriores.forEach(([k, v]) => lista.append(crear('li', {}, [crear('div', { className: 'texto' }, [
+        crear('b', { textContent: `Semana del ${f(fechaDeClave(k))}` }),
+        v.bien ? crear('span', { className: 'racha', textContent: `Bien: ${v.bien}` }) : '',
+        v.energia ? crear('span', { className: 'racha', textContent: `Robó energía: ${v.energia}` }) : '',
+        v.foco ? crear('span', { className: 'racha', textContent: `Foco: ${v.foco}` }) : '',
+        v.limite ? crear('span', { className: 'racha', textContent: `Límite: ${v.limite}` }) : '',
+    ])])));
+    pintarFoco();
+}
+
+// El foco y el límite elegidos en la última revisión de una semana anterior se ven cada día en Hoy
+function pintarFoco() {
+    const actual = revisionActual();
+    const previa = Object.entries(datos.revisiones).filter(([k, v]) => k < actual && (v.foco || v.limite)).sort((a, b) => b[0].localeCompare(a[0]))[0];
+    const el = $('#foco-semana');
+    if (!previa) { el.hidden = true; return; }
+    const v = previa[1];
+    el.hidden = false;
+    el.replaceChildren(...[v.foco && `🎯 Foco: ${v.foco}`, v.limite && `🛡️ Límite: ${v.limite}`].filter(Boolean).map((t) => crear('span', { textContent: t })));
+}
+
+$('#form-revision').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const r = {
+        bien: $('#rev-bien').value.trim(),
+        energia: $('#rev-energia').value.trim(),
+        foco: $('#rev-foco').value.trim(),
+        limite: $('#rev-limite').value.trim(),
+        fecha: Date.now(),
+    };
+    if (!r.bien && !r.energia && !r.foco && !r.limite) { aviso('Responde al menos una pregunta'); return; }
+    datos.revisiones[revisionActual()] = r;
+    guardar();
+    pintarRevision();
+    aviso('Revisión guardada. Buen fin de semana 🌿');
 });
 
 // =====================================================================
@@ -1561,6 +1673,7 @@ function irA(vista) {
     document.querySelectorAll('.vista').forEach((v) => v.classList.toggle('activa', v.id === `vista-${vista}`));
     window.scrollTo(0, 0);
     if (vista === 'agenda') refrescarAgenda();
+    if (vista === 'oasis') { pintarTendencia(); pintarRevision(); }
     if (vista === 'ajustes') pintarAjustes();
 }
 document.querySelectorAll('.barra button').forEach((btn) => btn.addEventListener('click', () => irA(btn.dataset.vista)));
@@ -1599,6 +1712,7 @@ function pintarTodo() {
     pintarCheckin();
     pintarTendencia();
     pintarOasis();
+    pintarRevision();
     pintarHabitos();
     pintarNotas();
     $('#seg-fecha').value = claveDia(sumarLaborables(2));

@@ -19,6 +19,7 @@
             <p class="marca">Método Oasis</p>
             <h1 id="saludo">Hola</h1>
             <p class="fecha" id="fecha"></p>
+            <p class="foco" id="foco-semana" hidden></p>
         </div>
         <div class="acciones-top">
             <button id="instalar" class="btn-instalar" hidden>Instalar</button>
@@ -186,6 +187,24 @@
             </div>
 
             <div id="pilares"></div>
+
+            <div class="tarjeta" id="tarjeta-revision">
+                <p class="marca">Plan de vuelta</p>
+                <h2 class="titulo-oasis" id="revision-titulo">Revisión semanal</h2>
+                <p class="ayuda sin-margen">Diez minutos el viernes para cerrar la semana y empezar el lunes sin ruido.</p>
+                <div id="revision-datos" class="datos-semana"></div>
+                <form id="form-revision" class="formulario espacio-arriba">
+                    <label class="campo">¿Qué ha salido bien esta semana?<textarea id="rev-bien" rows="2" maxlength="500"></textarea></label>
+                    <label class="campo">¿Qué te ha robado energía?<textarea id="rev-energia" rows="2" maxlength="500"></textarea></label>
+                    <label class="campo">¿Cuál es tu foco para la semana que viene?<input id="rev-foco" type="text" maxlength="120" autocomplete="off" placeholder="Una sola cosa"></label>
+                    <label class="campo">¿Qué límite vas a proteger?<input id="rev-limite" type="text" maxlength="120" autocomplete="off" placeholder="Ej: sin correo después de las 19:00"></label>
+                    <button type="submit" class="ancho">Guardar revisión</button>
+                </form>
+                <details id="revisiones-anteriores" class="avanzado">
+                    <summary>Revisiones anteriores</summary>
+                    <ul id="lista-revisiones" class="lista"></ul>
+                </details>
+            </div>
 
             <div class="tarjeta">
                 <h2>Otros hábitos</h2>
