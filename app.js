@@ -81,6 +81,7 @@ function base() {
         rutinas: [], // rutinas del Método Oasis: { id, pilar (0-3), nombre, dias: [] }
         ajustes: { moneda: 'EUR', presupuesto: null, clientId: '', inicioJornada: '09:00', finJornada: '18:30', diasLaborables: [1, 2, 3, 4, 5], avisoCierre: true, ocultarTrabajo: true },
         checkin: {}, // 'YYYY-MM-DD' -> { carga, energia, sueno, invasion }
+        seguimientos: [], // { id, tipo: 'delegado'|'espero', persona, asunto, revisar: 'YYYY-MM-DD', hecho, creado }
         cierres: {}, // 'YYYY-MM-DD' -> 'HH:MM' hora real a la que cerraste la jornada
         modoManual: null, // { dia, activo } para forzar o quitar el Modo Oasis hoy
         prioridades: {}, // 'YYYY-MM-DD' -> [{ texto, hecha }] x3
@@ -469,6 +470,117 @@ function pintarOasis() {
 }
 
 // =====================================================================
+// SEGUIMIENTOS: DELEGADO / ESPERO DE OTROS
+// =====================================================================
+let tipoSeg = 'delegado';
+let personaFiltro = null;
+
+function sumarLaborables(n, desde = new Date()) {
+    const f = new Date(desde);
+    let i = 0;
+    while (i < n) {
+        f.setDate(f.getDate() + 1);
+        if (datos.ajustes.diasLaborables.includes(f.getDay())) i++;
+    }
+    return f;
+}
+
+function cuandoSeg(seg) {
+    const hoy = claveDia();
+    const dias = Math.round((fechaDeClave(seg.revisar) - fechaDeClave(hoy)) / 864e5);
+    if (dias < 0) return { texto: `Vencido hace ${-dias} ${dias === -1 ? 'día' : 'días'}`, clase: 'vencido' };
+    if (dias === 0) return { texto: 'Revisar hoy', clase: 'hoy' };
+    if (dias === 1) return { texto: 'Revisar mañana', clase: '' };
+    return { texto: 'Revisar el ' + fechaDeClave(seg.revisar).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' }), clase: '' };
+}
+
+function filaSeg(seg, alCambiar) {
+    const c = cuandoSeg(seg);
+    return crear('li', { className: seg.hecho ? 'hecha' : '' }, [
+        crear('button', {
+            className: 'check' + (seg.hecho ? ' on' : ''), textContent: seg.hecho ? '✓' : '',
+            ariaLabel: seg.hecho ? 'Reabrir' : 'Marcar resuelto',
+            onclick: () => { seg.hecho = !seg.hecho; guardar(); alCambiar(); },
+        }),
+        crear('div', { className: 'texto' }, [
+            crear('span', {}, [crear('b', { textContent: seg.persona }), document.createTextNode((seg.tipo === 'delegado' ? ' · tiene que hacer: ' : ' · te debe: ') + seg.asunto)]),
+            crear('span', { className: 'racha ' + c.clase, textContent: seg.hecho ? 'Resuelto' : c.texto }),
+        ]),
+        seg.hecho ? botonBorrar('Borrar seguimiento', () => { datos.seguimientos = datos.seguimientos.filter((x) => x.id !== seg.id); guardar(); alCambiar(); })
+            : crear('button', {
+                className: 'mini secundario', textContent: '+2 días', ariaLabel: 'Posponer dos días laborables',
+                onclick: () => { seg.revisar = claveDia(sumarLaborables(2)); guardar(); alCambiar(); },
+            }),
+    ]);
+}
+
+function pintarSeguimientos() {
+    const pendientes = datos.seguimientos.filter((x) => !x.hecho);
+    const personas = [...new Set(datos.seguimientos.map((x) => x.persona))].sort((a, b) => a.localeCompare(b, 'es'));
+    $('#personas').replaceChildren(...personas.map((p) => crear('option', { value: p })));
+    if (personaFiltro && !personas.includes(personaFiltro)) personaFiltro = null;
+
+    const chips = $('#seg-personas');
+    chips.replaceChildren();
+    if (personas.length > 1) {
+        [null, ...personas].forEach((p) => {
+            const n = pendientes.filter((x) => p === null || x.persona === p).length;
+            chips.append(crear('button', {
+                type: 'button', className: 'chip' + (personaFiltro === p ? ' on' : ''),
+                textContent: `${p ?? 'Todos'}${n ? ` (${n})` : ''}`,
+                onclick: () => { personaFiltro = p; pintarSeguimientos(); },
+            }));
+        });
+    }
+
+    const vencidos = pendientes.filter((x) => x.revisar < claveDia()).length;
+    $('#contador-seg').textContent = pendientes.length ? `${pendientes.length} ${pendientes.length === 1 ? 'abierto' : 'abiertos'}${vencidos ? ` · ${vencidos} ${vencidos === 1 ? 'vencido' : 'vencidos'}` : ''}` : '';
+
+    const lista = $('#lista-seg');
+    lista.replaceChildren();
+    const visibles = datos.seguimientos
+        .filter((x) => !personaFiltro || x.persona === personaFiltro)
+        .sort((a, b) => (a.hecho - b.hecho) || a.revisar.localeCompare(b.revisar));
+    if (!visibles.length) { lista.append(vacio('Nada pendiente con nadie.')); }
+    visibles.forEach((x) => lista.append(filaSeg(x, refrescarSeg)));
+    pintarSegHoy();
+}
+
+function pintarSegHoy() {
+    const hoy = claveDia();
+    const urgentes = datos.seguimientos.filter((x) => !x.hecho && x.revisar <= hoy).sort((a, b) => a.revisar.localeCompare(b.revisar));
+    const tarjeta = $('#tarjeta-seg-hoy');
+    tarjeta.hidden = !urgentes.length || enModoOasis();
+    if (tarjeta.hidden) return;
+    $('#contador-seg-hoy').textContent = String(urgentes.length);
+    const lista = $('#lista-seg-hoy');
+    lista.replaceChildren();
+    urgentes.forEach((x) => lista.append(filaSeg(x, refrescarSeg)));
+}
+
+function refrescarSeg() {
+    pintarSeguimientos();
+}
+
+document.querySelectorAll('#form-seg .segmentado button').forEach((b) => b.addEventListener('click', () => {
+    tipoSeg = b.dataset.tipo;
+    document.querySelectorAll('#form-seg .segmentado button').forEach((x) => x.classList.toggle('on', x === b));
+}));
+
+$('#form-seg').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const persona = $('#seg-persona').value.trim();
+    const asunto = $('#seg-asunto').value.trim();
+    if (!persona || !asunto) return;
+    datos.seguimientos.push({ id: id(), tipo: tipoSeg, persona, asunto, revisar: $('#seg-fecha').value || claveDia(sumarLaborables(2)), hecho: false, creado: Date.now() });
+    guardar();
+    $('#seg-asunto').value = '';
+    $('#seg-fecha').value = claveDia(sumarLaborables(2));
+    pintarSeguimientos();
+    aviso(`Seguimiento con ${persona} guardado`);
+});
+
+// =====================================================================
 // NOTAS
 // =====================================================================
 function pintarNotas() {
@@ -831,6 +943,7 @@ $('#terminar-jornada').addEventListener('click', () => {
 function pintarHoyLimites() {
     pintarAgendaHoy();
     pintarCierre();
+    pintarSegHoy();
 }
 
 async function pintarAgendaHoy() {
@@ -1302,6 +1415,8 @@ function pintarTodo() {
     pintarOasis();
     pintarHabitos();
     pintarNotas();
+    $('#seg-fecha').value = claveDia(sumarLaborables(2));
+    pintarSeguimientos();
     pintarChipsCategorias();
     $('#gasto-fecha').value = claveDia();
     pintarGastos();

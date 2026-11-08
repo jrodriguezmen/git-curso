@@ -56,6 +56,11 @@
                 <ul id="agenda-hoy" class="lista"></ul>
             </div>
 
+            <div class="tarjeta" id="tarjeta-seg-hoy" hidden>
+                <h2>Seguimientos pendientes <span class="contador" id="contador-seg-hoy"></span></h2>
+                <ul id="lista-seg-hoy" class="lista"></ul>
+            </div>
+
             <div class="tarjeta">
                 <h2>Tareas de hoy <span class="contador" id="contador-tareas"></span></h2>
                 <form id="form-tarea" class="fila">
@@ -176,6 +181,26 @@
         <!-- ================= NOTAS ================= -->
         <section id="vista-notas" class="vista">
             <div class="tarjeta">
+                <h2>Seguimientos <span class="contador" id="contador-seg"></span></h2>
+                <p class="ayuda sin-margen">Lo que has delegado y lo que esperas de otros, para que nada se quede por el camino.</p>
+                <form id="form-seg" class="formulario espacio-arriba">
+                    <div class="segmentado" role="radiogroup">
+                        <button type="button" data-tipo="delegado" class="on">Lo he delegado</button>
+                        <button type="button" data-tipo="espero">Espero algo</button>
+                    </div>
+                    <div class="fila">
+                        <input id="seg-persona" type="text" placeholder="Persona" list="personas" maxlength="40" autocomplete="off" required>
+                        <input id="seg-fecha" type="date" required aria-label="Revisar el">
+                    </div>
+                    <datalist id="personas"></datalist>
+                    <input id="seg-asunto" type="text" placeholder="¿Qué? (ej: informe de ventas Q4)" maxlength="120" autocomplete="off" required>
+                    <button type="submit" class="ancho">Guardar seguimiento</button>
+                </form>
+                <div id="seg-personas" class="chips espacio-arriba"></div>
+                <ul id="lista-seg" class="lista"></ul>
+            </div>
+
+            <div class="tarjeta">
                 <h2>Notas rápidas</h2>
                 <form id="form-nota">
                     <textarea id="input-nota" rows="3" placeholder="Escribe una idea, una compra, un recordatorio..." maxlength="1000"></textarea>
@@ -287,7 +312,7 @@
         <button data-vista="oasis"><span>🌿</span>Oasis</button>
         <button data-vista="agenda"><span>📅</span>Agenda</button>
         <button data-vista="gastos"><span>💶</span>Gastos</button>
-        <button data-vista="notas"><span>📝</span>Notas</button>
+        <button data-vista="notas"><span>🤝</span>Equipo</button>
     </nav>
 
     <script src="google.js"></script>

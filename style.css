@@ -350,3 +350,11 @@ p.campo { margin-bottom: 6px; }
 .barra-v { width: 100%; height: 48px; background: var(--fondo); border-radius: 6px; display: flex; align-items: flex-end; overflow: hidden; }
 .barra-v i { width: 100%; border-radius: 6px; }
 .alerta { margin: 12px 0 0; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, var(--acento) 25%, transparent); font-size: .9rem; line-height: 1.4; }
+
+/* ---------- Seguimientos ---------- */
+.espacio-arriba { margin-top: 12px; }
+.segmentado { display: grid; grid-template-columns: 1fr 1fr; background: var(--fondo); border: 1px solid var(--borde); border-radius: 12px; padding: 3px; gap: 3px; }
+.segmentado button { background: none; color: var(--suave); min-height: 38px; padding: 6px; font-weight: 500; }
+.segmentado button.on { background: var(--tarjeta); color: var(--texto); font-weight: 700; box-shadow: var(--sombra); }
+.racha.vencido { color: var(--peligro); font-weight: 600; }
+.racha.hoy { color: var(--ok); font-weight: 600; }
