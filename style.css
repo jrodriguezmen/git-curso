@@ -12,6 +12,8 @@
     --ok: #4f8a66;
     --peligro: #b4432f;
     --sombra: 0 1px 3px rgba(20, 35, 29, .06);
+    --destacado: #14231d;
+    --destacado-texto: #f3eee4;
     --display: "Fraunces", Georgia, "Times New Roman", serif;
     --cuerpo: "Work Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
@@ -29,6 +31,8 @@
         --ok: #7fa88f;
         --peligro: #e0806b;
         --sombra: none;
+        --destacado: #24402f;
+        --destacado-texto: #f3eee4;
     }
     button:not(.secundario):not(.icono):not(.check):not(.borrar):not(.chip):not(.enlace):not(.mini):not(.dia) { color: #0d1814; }
 }
@@ -274,7 +278,7 @@ button.mini { padding: 4px 10px; min-height: 32px; font-size: .8rem; }
 
 /* ---------- Método Oasis ---------- */
 .titulo-oasis { font-family: var(--display); font-weight: 400; font-size: 1.45rem; margin: 4px 0 0; }
-.oasis-intro { background: var(--primario); color: var(--fondo); border: none; }
+.oasis-intro { background: var(--destacado); color: var(--destacado-texto); border: none; }
 .oasis-intro .marca { color: var(--acento); }
 .oasis-intro .ayuda { color: inherit; opacity: .85; }
 .oasis-intro .presupuesto { background: rgba(255, 255, 255, .18); }
@@ -312,3 +316,19 @@ button.mini { padding: 4px 10px; min-height: 32px; font-size: .8rem; }
 .datos-dia span { font-size: .75rem; color: var(--suave); }
 .siguiente { margin: 12px 0 4px; font-weight: 600; }
 .lista li.pasado { opacity: .5; }
+
+/* ---------- Modo Oasis y ritual de cierre ---------- */
+.banner-oasis, .cierre { background: var(--destacado); color: var(--destacado-texto); border: none; }
+.banner-oasis .marca, .cierre .marca { color: var(--acento); }
+.banner-oasis .ayuda, .cierre .ayuda { color: inherit; opacity: .8; }
+.banner-oasis .enlace { color: inherit; opacity: .75; text-decoration: underline; }
+.banner-texto { font-family: var(--display); font-size: 1.15rem; margin: 6px 0 0; line-height: 1.35; }
+.cierre .titulo-oasis { color: inherit; }
+.pasos { margin: 12px 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; line-height: 1.4; }
+.cierre input { background: rgba(255, 255, 255, .1); border-color: rgba(255, 255, 255, .25); color: inherit; }
+.cierre input::placeholder { color: inherit; opacity: .6; }
+.cierre button:not(.enlace) { background: var(--acento); color: #14231d; }
+.interruptor { display: flex; gap: 10px; align-items: flex-start; margin-top: 12px; font-size: .92rem; line-height: 1.35; }
+.interruptor input { width: 20px; height: 20px; flex: none; margin: 1px 0 0; accent-color: var(--ok); }
+.dia-chip { width: 40px; padding: 0; }
+p.campo { margin-bottom: 6px; }

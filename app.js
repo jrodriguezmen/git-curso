@@ -79,7 +79,9 @@ function base() {
         tareas: [], habitos: [], notas: [], agua: {}, animo: {},
         eventos: [], recordatorios: [], gastos: [], cuentas: [],
         rutinas: [], // rutinas del Método Oasis: { id, pilar (0-3), nombre, dias: [] }
-        ajustes: { moneda: 'EUR', presupuesto: null, clientId: '', inicioJornada: '09:00', finJornada: '18:30' },
+        ajustes: { moneda: 'EUR', presupuesto: null, clientId: '', inicioJornada: '09:00', finJornada: '18:30', diasLaborables: [1, 2, 3, 4, 5], avisoCierre: true, ocultarTrabajo: true },
+        cierres: {}, // 'YYYY-MM-DD' -> 'HH:MM' hora real a la que cerraste la jornada
+        modoManual: null, // { dia, activo } para forzar o quitar el Modo Oasis hoy
         prioridades: {}, // 'YYYY-MM-DD' -> [{ texto, hecha }] x3
     };
 }
@@ -486,7 +488,7 @@ async function itemsDelDia(clave) {
     });
     const google = await eventosGoogleMes(dia.getFullYear(), dia.getMonth());
     google.filter((e) => claveDia(e.inicio) === clave).forEach((e) => items.push({
-        tipo: 'google', titulo: e.titulo, hora: e.inicio, fin: e.fin, todoElDia: e.todoElDia, origen: `Google ${e.origen}`, color: e.color,
+        tipo: 'google', titulo: e.titulo, hora: e.inicio, fin: e.fin, todoElDia: e.todoElDia, origen: `Google ${e.origen}`, color: e.color, trabajo: e.trabajo,
     }));
 
     return items.sort((a, b) => (!!b.todoElDia - !!a.todoElDia) || (a.hora - b.hora));
@@ -564,7 +566,7 @@ function pintarResumenDia(items) {
     cont.replaceChildren();
     const ahora = new Date();
     const d = calcularDia(items, ahora);
-    if (!d.reuniones) { cont.hidden = true; return; }
+    if (!d.reuniones || enModoOasis(ahora)) { cont.hidden = true; return; }
     cont.hidden = false;
     const pct = d.jornada > 0 ? Math.round((d.ocupado / d.jornada) * 100) : 0;
     cont.append(crear('div', { className: 'datos-dia' }, [
@@ -579,6 +581,10 @@ function pintarResumenDia(items) {
         siguiente = `Siguiente: ${d.proxima.titulo} ${min < 60 ? `en ${min} min` : `a las ${horaTexto(d.proxima.hora)}`}`;
     }
     if (siguiente) cont.append(crear('p', { className: 'siguiente', textContent: siguiente }));
+    const finJ = horaEnDia(datos.ajustes.finJornada, ahora);
+    if (!enModoOasis(ahora) && finJ > ahora) {
+        cont.append(crear('p', { className: 'ayuda sin-margen', textContent: `Tu jornada termina a las ${datos.ajustes.finJornada} (en ${duracionTexto((finJ - ahora) / 60000)}).` }));
+    }
     if (d.huecos.length) {
         cont.append(crear('p', { className: 'ayuda sin-margen', textContent: 'Huecos libres: ' + d.huecos.map(([a, b]) => `${horaTexto(a)}–${horaTexto(b)}`).join(' · ') }));
     } else if (horaEnDia(datos.ajustes.finJornada) > ahora) {
@@ -586,13 +592,133 @@ function pintarResumenDia(items) {
     }
 }
 
+// =====================================================================
+// LÍMITES: MODO OASIS Y RITUAL DE CIERRE
+// =====================================================================
+function esLaborable(fecha = new Date()) {
+    return datos.ajustes.diasLaborables.includes(fecha.getDay());
+}
+
+// ¿Estamos fuera de la jornada? (o la cerraste tú, o lo forzaste a mano)
+function enModoOasis(ahora = new Date()) {
+    const hoy = claveDia(ahora);
+    if (datos.modoManual && datos.modoManual.dia === hoy) return datos.modoManual.activo;
+    if (datos.cierres[hoy]) return true;
+    if (!esLaborable(ahora)) return true;
+    return ahora < horaEnDia(datos.ajustes.inicioJornada, ahora) || ahora >= horaEnDia(datos.ajustes.finJornada, ahora);
+}
+
+function proximoInicioJornada(ahora = new Date()) {
+    for (let i = 0; i < 8; i++) {
+        const d = new Date(ahora); d.setDate(d.getDate() + i);
+        const ini = horaEnDia(datos.ajustes.inicioJornada, d);
+        if (esLaborable(d) && ini > ahora && !(i === 0 && datos.cierres[claveDia(d)])) return ini;
+    }
+    return null;
+}
+
+function pintarBannerOasis(ocultos) {
+    const banner = $('#banner-oasis');
+    const ahora = new Date();
+    if (!enModoOasis(ahora)) { banner.hidden = true; return; }
+    banner.hidden = false;
+    banner.replaceChildren();
+    const hoy = claveDia(ahora);
+    const vuelta = proximoInicioJornada(ahora);
+    let texto;
+    if (datos.cierres[hoy]) texto = `Cerraste tu jornada a las ${datos.cierres[hoy]}.`;
+    else if (!esLaborable(ahora)) texto = 'Hoy no es día de trabajo.';
+    else if (ahora < horaEnDia(datos.ajustes.inicioJornada, ahora)) texto = `Tu jornada aún no ha empezado.`;
+    else texto = `Tu jornada terminó a las ${datos.ajustes.finJornada}.`;
+    if (vuelta) {
+        const cuando = claveDia(vuelta) === hoy ? 'hoy' : claveDia(vuelta) === claveDia(new Date(ahora.getTime() + 864e5)) ? 'mañana' : 'el ' + vuelta.toLocaleDateString('es-ES', { weekday: 'long' });
+        texto += ` El trabajo puede esperar hasta ${cuando} a las ${horaTexto(vuelta)}.`;
+    }
+    banner.append(
+        crear('p', { className: 'marca', textContent: '🌿 Modo Oasis' }),
+        crear('p', { className: 'banner-texto', textContent: texto }),
+    );
+    if (ocultos) banner.append(crear('p', { className: 'ayuda', textContent: `${ocultos} ${ocultos === 1 ? 'cita de trabajo oculta' : 'citas de trabajo ocultas'}.` }));
+    banner.append(crear('button', {
+        className: 'enlace', textContent: 'Necesito trabajar un rato',
+        onclick: () => { datos.modoManual = { dia: hoy, activo: false }; guardar(); pintarHoyLimites(); },
+    }));
+}
+
+function pasosCierre() {
+    const pri = prioridadesDe(claveDia()).filter((p) => p.texto);
+    const hechas = pri.filter((p) => p.hecha).length;
+    return [
+        pri.length ? `Revisa tus prioridades: has hecho ${hechas} de ${pri.length}.` : 'Revisa qué has conseguido hoy.',
+        'Apunta abajo lo primero de mañana, para sacarlo de tu cabeza.',
+        'Mira tu agenda de mañana.',
+        'Cierra el correo y las apps del trabajo.',
+        'Silencia las notificaciones del trabajo hasta mañana.',
+    ];
+}
+
+async function pintarCierre() {
+    const tarjeta = $('#tarjeta-cierre');
+    const ahora = new Date();
+    const hoy = claveDia(ahora);
+    const fin = horaEnDia(datos.ajustes.finJornada, ahora);
+    const manualTrabajo = datos.modoManual && datos.modoManual.dia === hoy && !datos.modoManual.activo;
+    const visible = esLaborable(ahora) && !datos.cierres[hoy] && (ahora >= new Date(fin - 60 * 60000) || manualTrabajo);
+    tarjeta.hidden = !visible;
+    if (!visible) return;
+
+    const pasos = pasosCierre();
+    const manana = new Date(ahora); manana.setDate(manana.getDate() + 1);
+    const citasManana = (await itemsDelDia(claveDia(manana))).filter((i) => i.tipo !== 'recordatorio' && !i.todoElDia);
+    pasos[2] = citasManana.length
+        ? `Mira tu agenda de mañana: ${citasManana.length} ${citasManana.length === 1 ? 'cita' : 'citas'}, la primera a las ${horaTexto(citasManana[0].hora)} (${citasManana[0].titulo}).`
+        : 'Mira tu agenda de mañana: no tienes citas.';
+    const ol = $('#pasos-cierre');
+    ol.replaceChildren();
+    pasos.forEach((t) => ol.append(crear('li', { textContent: t })));
+    const lista = prioridadesDe(claveDia(manana)).filter((p) => p.texto).map((p) => p.texto);
+    $('#manana-lista').textContent = lista.length ? 'Para mañana: ' + lista.join(' · ') : '';
+}
+
+$('#form-manana').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const texto = $('#input-manana').value.trim();
+    if (!texto) return;
+    const manana = new Date(); manana.setDate(manana.getDate() + 1);
+    const lista = prioridadesDe(claveDia(manana));
+    const libre = lista.find((p) => !p.texto);
+    if (!libre) { aviso('Mañana ya tiene 3 prioridades'); return; }
+    libre.texto = texto;
+    $('#input-manana').value = '';
+    guardar();
+    pintarCierre();
+});
+
+$('#terminar-jornada').addEventListener('click', () => {
+    const hoy = claveDia();
+    datos.cierres[hoy] = horaTexto(new Date());
+    if (datos.modoManual && datos.modoManual.dia === hoy) datos.modoManual = null;
+    guardar();
+    aviso('Jornada cerrada. Disfruta tu oasis 🌿');
+    pintarHoyLimites();
+});
+
+function pintarHoyLimites() {
+    pintarAgendaHoy();
+    pintarCierre();
+}
+
 async function pintarAgendaHoy() {
     const lista = $('#agenda-hoy');
-    const items = await itemsDelDia(claveDia());
+    let items = await itemsDelDia(claveDia());
+    const ocultar = datos.ajustes.ocultarTrabajo && enModoOasis();
+    const ocultos = ocultar ? items.filter((i) => i.trabajo).length : 0;
+    if (ocultar) items = items.filter((i) => !i.trabajo);
+    pintarBannerOasis(ocultos);
     pintarResumenDia(items);
     lista.replaceChildren();
     if (!items.length) {
-        lista.append(vacio(datos.cuentas.length ? 'Día libre. Disfruta tu oasis 🌴' : 'Sin eventos. Conecta tus calendarios de Google en Ajustes ⚙️'));
+        lista.append(vacio(ocultos ? 'Nada más por hoy. Disfruta tu oasis 🌴' : datos.cuentas.length ? 'Día libre. Disfruta tu oasis 🌴' : 'Sin eventos. Conecta tus calendarios de Google en Ajustes ⚙️'));
         return;
     }
     items.forEach((it) => lista.append(filaItem(it, pintarAgendaHoy)));
@@ -673,7 +799,7 @@ function pintarRecordatorios() {
 }
 
 function refrescarAgenda() {
-    pintarAgendaHoy();
+    pintarHoyLimites();
     pintarCalendario();
     pintarDia();
     pintarRecordatorios();
@@ -789,6 +915,16 @@ async function programarNotificaciones() {
                     ? { at: cuando, repeats: true, every: r.repetir === 'diario' ? 'day' : 'week', allowWhileIdle: true }
                     : { at: cuando, allowWhileIdle: true },
             }));
+        // Aviso diario del ritual de cierre (15 min antes del fin de jornada, días de trabajo)
+        if (datos.ajustes.avisoCierre) {
+            const aviso15 = new Date(horaEnDia(datos.ajustes.finJornada) - 15 * 60000);
+            datos.ajustes.diasLaborables.forEach((dia) => lista.push({
+                id: 1900000000 + dia,
+                title: 'Método Oasis 🌿',
+                body: 'En 15 minutos termina tu jornada. Empieza tu ritual de cierre.',
+                schedule: { on: { weekday: dia + 1, hour: aviso15.getHours(), minute: aviso15.getMinutes() }, allowWhileIdle: true },
+            }));
+        }
         if (lista.length) await nativas.schedule({ notifications: lista });
     } catch (e) { /* sin permiso */ }
 }
@@ -815,8 +951,21 @@ function revisarRecordatorios() {
         else r.avisado = true;
         cambio = true;
     });
+    // Aviso del ritual de cierre (versión web)
+    const hoy = claveDia(ahora);
+    const fin = horaEnDia(datos.ajustes.finJornada, ahora);
+    if (datos.ajustes.avisoCierre && !notifNativas() && esLaborable(ahora) && !datos.cierres[hoy]
+        && ahora >= new Date(fin - 15 * 60000) && ahora < fin && datos.avisoCierreDado !== hoy) {
+        datos.avisoCierreDado = hoy;
+        mostrarNotificacion('En 15 minutos termina tu jornada. Empieza tu ritual de cierre.');
+        cambio = true;
+    }
     if (cambio) { guardar(); pintarRecordatorios(); }
+    // Al cruzar la hora de fin (o de inicio) se actualiza la pantalla de Hoy
+    const oasis = enModoOasis(ahora);
+    if (oasis !== ultimoModoOasis) { ultimoModoOasis = oasis; pintarHoyLimites(); }
 }
+let ultimoModoOasis = null;
 
 function pintarEstadoNotif() {
     let texto;
@@ -928,11 +1077,26 @@ function pintarAjustes() {
     $('#google-client-id').value = datos.ajustes.clientId || '';
     $('#ajuste-inicio').value = datos.ajustes.inicioJornada;
     $('#ajuste-fin').value = datos.ajustes.finJornada;
+    $('#ajuste-aviso-cierre').checked = datos.ajustes.avisoCierre;
+    $('#ajuste-ocultar-trabajo').checked = datos.ajustes.ocultarTrabajo;
+    const dias = $('#ajuste-dias');
+    dias.replaceChildren();
+    [['L', 1], ['M', 2], ['X', 3], ['J', 4], ['V', 5], ['S', 6], ['D', 0]].forEach(([letra, n]) => dias.append(crear('button', {
+        type: 'button', className: 'chip dia-chip' + (datos.ajustes.diasLaborables.includes(n) ? ' on' : ''), textContent: letra,
+        ariaLabel: 'Día de trabajo',
+        onclick: () => {
+            const ds = datos.ajustes.diasLaborables;
+            datos.ajustes.diasLaborables = ds.includes(n) ? ds.filter((x) => x !== n) : [...ds, n];
+            guardar(); pintarAjustes(); pintarHoyLimites(); programarNotificaciones();
+        },
+    })));
     pintarCuentas();
     pintarEstadoNotif();
 }
-$('#ajuste-inicio').addEventListener('change', (e) => { if (e.target.value) { datos.ajustes.inicioJornada = e.target.value; guardar(); pintarAgendaHoy(); } });
-$('#ajuste-fin').addEventListener('change', (e) => { if (e.target.value) { datos.ajustes.finJornada = e.target.value; guardar(); pintarAgendaHoy(); } });
+$('#ajuste-inicio').addEventListener('change', (e) => { if (e.target.value) { datos.ajustes.inicioJornada = e.target.value; guardar(); pintarHoyLimites(); } });
+$('#ajuste-fin').addEventListener('change', (e) => { if (e.target.value) { datos.ajustes.finJornada = e.target.value; guardar(); pintarHoyLimites(); programarNotificaciones(); } });
+$('#ajuste-aviso-cierre').addEventListener('change', (e) => { datos.ajustes.avisoCierre = e.target.checked; guardar(); programarNotificaciones(); });
+$('#ajuste-ocultar-trabajo').addEventListener('change', (e) => { datos.ajustes.ocultarTrabajo = e.target.checked; guardar(); pintarAgendaHoy(); });
 $('#ajuste-moneda').addEventListener('change', (e) => { datos.ajustes.moneda = e.target.value; guardar(); pintarGastos(); });
 $('#ajuste-presupuesto').addEventListener('change', (e) => {
     const v = parseFloat(e.target.value);

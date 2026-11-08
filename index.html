@@ -29,6 +29,21 @@
     <main>
         <!-- ================= HOY ================= -->
         <section id="vista-hoy" class="vista activa">
+            <div id="banner-oasis" class="tarjeta banner-oasis" hidden></div>
+
+            <div id="tarjeta-cierre" class="tarjeta cierre" hidden>
+                <p class="marca">Ritual de cierre</p>
+                <h2 class="titulo-oasis">Cierra tu jornada</h2>
+                <p class="ayuda sin-margen">Cinco minutos para que el trabajo no se venga contigo a casa.</p>
+                <ol id="pasos-cierre" class="pasos"></ol>
+                <form id="form-manana" class="fila">
+                    <input id="input-manana" type="text" placeholder="Lo primero de mañana es..." maxlength="100" autocomplete="off">
+                    <button type="submit" aria-label="Guardar para mañana">+</button>
+                </form>
+                <p id="manana-lista" class="ayuda"></p>
+                <button id="terminar-jornada" class="ancho">He terminado mi jornada 🌿</button>
+            </div>
+
             <div class="tarjeta">
                 <h2>Lo importante hoy <span class="contador" id="contador-prioridades"></span></h2>
                 <p class="ayuda sin-margen">Si solo pudieras hacer tres cosas hoy, ¿cuáles serían?</p>
@@ -185,6 +200,10 @@
                     <label class="campo">Empiezo<input id="ajuste-inicio" type="time"></label>
                     <label class="campo">Termino<input id="ajuste-fin" type="time"></label>
                 </div>
+                <p class="campo">Días de trabajo</p>
+                <div id="ajuste-dias" class="chips"></div>
+                <label class="interruptor"><input id="ajuste-aviso-cierre" type="checkbox"> Avisarme 15 min antes de terminar para hacer el ritual de cierre</label>
+                <label class="interruptor"><input id="ajuste-ocultar-trabajo" type="checkbox"> Modo Oasis: ocultar el calendario del trabajo fuera de mi jornada</label>
             </div>
 
             <div class="tarjeta">

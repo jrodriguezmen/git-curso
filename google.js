@@ -98,6 +98,7 @@ const GoogleCal = (() => {
                             fin,
                             todoElDia,
                             origen: cuenta.etiqueta,
+                            trabajo: cuenta.etiqueta === 'Trabajo',
                             color: cuenta.color,
                         };
                     });
